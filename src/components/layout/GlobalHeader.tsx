@@ -2,12 +2,6 @@ import { Bell } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { Link } from 'react-router-dom';
 
-// Novos ícones em PNG
-import incomeIcon from '../../icons/income.png';
-import expenseIcon from '../../icons/expense.png';
-import variableIcon from '../../icons/variable.png';
-import statementIcon from '../../icons/statement.png';
-
 export default function GlobalHeader() {
   const { user } = useAuthStore();
 
@@ -30,40 +24,40 @@ export default function GlobalHeader() {
             </button>
           </div>
 
-          {/* Card do saldo */}
+          {/* Card de Saldo */}
           <div className="bg-white rounded-2xl p-6 text-gray-900">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#1A1A40]">Weekly Balance</h2>
+              <h2 className="text-xl font-bold text-[#1A1A40]">My Balance</h2>
               <p className="text-3xl font-bold text-[#1A1A40]">$2,887.65</p>
             </div>
           </div>
 
-          {/* Ações rápidas com ícones personalizados */}
+          {/* Ações rápidas */}
           <div className="mt-6 grid grid-cols-4 gap-4">
             <Link to="/income" className="flex flex-col items-center">
               <div className="w-14 h-14 bg-[#E8E5FF] rounded-full flex items-center justify-center mb-2">
-                <img src={incomeIcon} alt="Income" className="w-6 h-6" />
+                <img src="/src/icons/income.png" alt="Income" className="w-6 h-6" />
               </div>
               <span className="text-xs text-white">Income</span>
             </Link>
 
             <Link to="/expenses" className="flex flex-col items-center">
               <div className="w-14 h-14 bg-[#E8E5FF] rounded-full flex items-center justify-center mb-2">
-                <img src={expenseIcon} alt="Expenses" className="w-6 h-6" />
+                <img src="/src/icons/expense.png" alt="Expenses" className="w-6 h-6" />
               </div>
               <span className="text-xs text-white">Expenses</span>
             </Link>
 
             <Link to="/variables" className="flex flex-col items-center">
               <div className="w-14 h-14 bg-[#E8E5FF] rounded-full flex items-center justify-center mb-2">
-                <img src={variableIcon} alt="Variables" className="w-6 h-6" />
+                <img src="/src/icons/variable.png" alt="Variables" className="w-6 h-6" />
               </div>
               <span className="text-xs text-white">Variables</span>
             </Link>
 
             <Link to="/statements" className="flex flex-col items-center">
               <div className="w-14 h-14 bg-[#E8E5FF] rounded-full flex items-center justify-center mb-2">
-                <img src={statementIcon} alt="Statements" className="w-6 h-6" />
+                <img src="/src/icons/statement.png" alt="Statements" className="w-6 h-6" />
               </div>
               <span className="text-xs text-white">Statements</span>
             </Link>
