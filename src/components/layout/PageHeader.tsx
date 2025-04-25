@@ -17,9 +17,9 @@ export default function PageHeader({
   const navigate = useNavigate();
 
   return (
-    <div className="bg-[#120B39] text-white">
+    <div className="bg-gradient-to-r from-[#1E3A8A] via-[#3B82F6] to-[#1E3A8A] text-white">
       <div className="relative">
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#120B39] rounded-b-[40px]"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-r from-[#1E3A8A] via-[#3B82F6] to-[#1E3A8A] rounded-b-[40px]"></div>
         <div className="relative px-4 pt-12 pb-6">
           <div className="flex items-center justify-between">
             {showBackButton ? (
@@ -30,7 +30,6 @@ export default function PageHeader({
                 <ArrowLeft className="h-6 w-6" />
               </button>
             ) : (
-              /* Spacer for alignment */
               <div className="w-10"></div>
             )}
             
@@ -44,7 +43,6 @@ export default function PageHeader({
                 <MoreVertical className="h-6 w-6" />
               </button>
             ) : (
-              /* Spacer for alignment */
               <div className="w-10"></div>
             )}
           </div>
