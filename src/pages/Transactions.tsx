@@ -1,77 +1,83 @@
 import { useEffect, useState } from 'react';
-import { useTransactionStore } from '../stores/transactionStore';
+import { useTransactionStore } from '../stores/transactionStore'; // Mantendo o nome do store, pois não foi pedido para mudar
 import { format } from 'date-fns';
 import { ArrowDownCircle, ArrowUpCircle, Download, FilterX, PlusCircle, Search, Trash2 } from 'lucide-react';
-import TransactionForm from '../components/forms/TransactionForm';
+import TransactionForm from '../components/forms/TransactionForm'; // Mantendo o nome do componente, pois não foi pedido para mudar
 import BottomNavigation from '../components/layout/BottomNavigation';
 import PageHeader from '../components/layout/PageHeader';
-import { TransactionCategory, isIncomeCategory } from '../types/transaction';
+import { TransactionCategory, isIncomeCategory } from '../types/transaction'; // Mantendo os tipos, pois não foi pedido para mudar
 import { formatCurrency } from '../utils/formatters';
 
-export default function Transactions() {
-  const { transactions, fetchTransactions, deleteTransaction } = useTransactionStore();
+// Mudança do nome do componente/página
+export default function Statement() {
+  // Renomeando a variável que recebe os dados de 'transactions' para 'statements'
+  // Mantendo os nomes das actions do store ('fetchTransactions', 'deleteTransaction')
+  const { transactions: statements, fetchTransactions, deleteTransaction } = useTransactionStore();
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategory | 'all'>('all');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Filter transactions based on search and filters
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = (transaction.origin || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
-    
+  // Filter statements based on search and filters - Mudança no comentário
+  const filteredStatements = statements.filter(statement => { // Renomeando 'transactions' para 'statements' e 'transaction' para 'statement'
+    const matchesSearch = (statement.origin || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || statement.category === categoryFilter;
+
     return matchesSearch && matchesCategory;
   });
-  
-  // Sort transactions by date (newest first)
-  const sortedTransactions = [...filteredTransactions]
+
+  // Sort statements by date (newest first) - Mudança no comentário
+  const sortedStatements = [...filteredStatements] // Renomeando 'filteredTransactions' para 'filteredStatements'
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
-  const handleDeleteTransaction = async (id: string) => {
+
+  // Renomeando a função
+  const handleDeleteStatement = async (id: string) => {
     setIsDeleting(id);
-    
+
     try {
-      await deleteTransaction(id);
+      await deleteTransaction(id); // Mantendo a action do store
     } catch (error) {
-      console.error('Failed to delete transaction', error);
+      console.error('Failed to delete statement', error); // Mudança na mensagem de erro
     } finally {
       setIsDeleting(null);
     }
   };
-  
+
   const exportToCSV = () => {
     // Create CSV content
     const headers = ['Date', 'Origin', 'Amount', 'Category'];
     const csvContent = [
       headers.join(','),
-      ...sortedTransactions.map(t => [
-        format(new Date(t.date), 'yyyy-MM-dd'),
-        `"${(t.origin || '').replace(/"/g, '""')}"`,
-        t.amount,
-        t.category
+      // Renomeando 'sortedTransactions' para 'sortedStatements' e 't' para 'statement'
+      ...sortedStatements.map(statement => [
+        format(new Date(statement.date), 'yyyy-MM-dd'),
+        `"${(statement.origin || '').replace(/"/g, '""')}"`,
+        statement.amount,
+        statement.category
       ].join(','))
     ].join('\n');
-    
+
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `transactions_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    // Mudando o nome do arquivo CSV
+    link.setAttribute('download', `statement_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
-  
+
   const clearFilters = () => {
     setSearchTerm('');
     setCategoryFilter('all');
   };
-  
+
   const getCategoryBadgeClass = (category: string) => {
     const baseClass = 'text-xs font-medium px-2 py-1 rounded';
     switch (category) {
@@ -87,50 +93,52 @@ export default function Transactions() {
     }
   };
 
-  // Get recent transactions for the summary section
-  const recentTransactions = sortedTransactions.slice(0, 5);
+  // Get recent statements for the summary section - Mudança no comentário
+  // Renomeando 'sortedTransactions' para 'sortedStatements' e 'recentTransactions' para 'recentStatements'
+  const recentStatements = sortedStatements.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <PageHeader 
-        title="Transactions" 
+      <PageHeader
+        title="Statement" // Mudança no título
         showBackButton={false}
         showMoreOptions={true}
       />
-      
+
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Recent Transactions Summary */}
+        {/* Recent Statements Summary - Mudança no comentário e título */}
         <div className="bg-white rounded-xl p-6 shadow-card mb-6">
-          <h2 className="text-xl font-bold mb-4">Recent Transactions</h2>
+          <h2 className="text-xl font-bold mb-4">Recent Statement</h2> {/* Mudança no título */}
           <div className="space-y-4">
-            {recentTransactions.map(transaction => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
+            {/* Renomeando 'recentTransactions' para 'recentStatements' e 'transaction' para 'statement' */}
+            {recentStatements.map(statement => (
+              <div key={statement.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isIncomeCategory(transaction.category) ? 'bg-success-100' : 'bg-error-100'
+                    isIncomeCategory(statement.category) ? 'bg-success-100' : 'bg-error-100'
                   }`}>
-                    {isIncomeCategory(transaction.category) ? (
+                    {isIncomeCategory(statement.category) ? (
                       <ArrowUpCircle className="h-5 w-5 text-success-600" />
                     ) : (
                       <ArrowDownCircle className="h-5 w-5 text-error-600" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium">{transaction.origin}</p>
+                    <p className="font-medium">{statement.origin}</p>
                     <p className="text-sm text-gray-500">
-                      {format(new Date(transaction.date), 'MMM d, yyyy')}
+                      {format(new Date(statement.date), 'MMM d, yyyy')}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className={`font-medium ${
-                    isIncomeCategory(transaction.category) ? 'text-success-600' : 'text-error-600'
+                    isIncomeCategory(statement.category) ? 'text-success-600' : 'text-error-600'
                   }`}>
-                    {isIncomeCategory(transaction.category) ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    {isIncomeCategory(statement.category) ? '+' : '-'}{formatCurrency(statement.amount)}
                   </span>
                   <div className="mt-1">
-                    <span className={getCategoryBadgeClass(transaction.category)}>
-                      {transaction.category}
+                    <span className={getCategoryBadgeClass(statement.category)}>
+                      {statement.category}
                     </span>
                   </div>
                 </div>
@@ -141,14 +149,14 @@ export default function Transactions() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div className="flex gap-2">
-            <button 
+            <button
               className="btn btn-primary flex-1 sm:flex-none"
               onClick={() => setShowForm(true)}
             >
               <PlusCircle className="h-5 w-5 mr-2" />
-              Add New
+              Add New {/* Mantido "Add New", mas o modal abaixo será alterado */}
             </button>
-            <button 
+            <button
               className="btn btn-outline flex-1 sm:flex-none"
               onClick={exportToCSV}
             >
@@ -157,7 +165,7 @@ export default function Transactions() {
             </button>
           </div>
         </div>
-        
+
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 mb-6 shadow-card">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -166,14 +174,14 @@ export default function Transactions() {
                 <input
                   type="text"
                   className="input pl-10"
-                  placeholder="Search transactions..."
+                  placeholder="Search statement..." // Mudança no placeholder
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </div>
-            
+
             <div>
               <select
                 className="input"
@@ -191,11 +199,12 @@ export default function Transactions() {
               </select>
             </div>
           </div>
-          
+
           {(searchTerm || categoryFilter !== 'all') && (
             <div className="mt-4 flex justify-between items-center">
               <p className="text-sm text-gray-600">
-                Showing {sortedTransactions.length} of {transactions.length} transactions
+                {/* Mudança na mensagem e renomeando variáveis */}
+                Showing {sortedStatements.length} of {statements.length} statements
               </p>
               <button
                 className="text-sm text-primary-600 hover:text-primary-800 flex items-center"
@@ -207,10 +216,11 @@ export default function Transactions() {
             </div>
           )}
         </div>
-        
-        {/* Transactions List */}
+
+        {/* Statement List - Mudança no comentário */}
         <div className="bg-white rounded-xl overflow-hidden shadow-card">
-          {sortedTransactions.length > 0 ? (
+          {/* Renomeando 'sortedTransactions' para 'sortedStatements' */}
+          {sortedStatements.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -223,31 +233,33 @@ export default function Transactions() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedTransactions.map(transaction => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
+                  {/* Renomeando 'sortedTransactions' para 'sortedStatements' e 'transaction' para 'statement' */}
+                  {sortedStatements.map(statement => (
+                    <tr key={statement.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {format(new Date(transaction.date), 'MMM d, yyyy')}
+                        {format(new Date(statement.date), 'MMM d, yyyy')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {transaction.origin || ''}
+                        {statement.origin || ''}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={getCategoryBadgeClass(transaction.category)}>
-                          {transaction.category}
+                        <span className={getCategoryBadgeClass(statement.category)}>
+                          {statement.category}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                        <span className={isIncomeCategory(transaction.category) ? 'text-success-600' : 'text-error-600'}>
-                          {isIncomeCategory(transaction.category) ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        <span className={isIncomeCategory(statement.category) ? 'text-success-600' : 'text-error-600'}>
+                          {isIncomeCategory(statement.category) ? '+' : '-'}{formatCurrency(statement.amount)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                          disabled={isDeleting === transaction.id}
+                          // Renomeando a função chamada e o ID check
+                          onClick={() => handleDeleteStatement(statement.id)}
+                          disabled={isDeleting === statement.id}
                           className="text-error-600 hover:text-error-800"
                         >
-                          {isDeleting === transaction.id ? (
+                          {isDeleting === statement.id ? (
                             'Deleting...'
                           ) : (
                             <Trash2 className="h-5 w-5" />
@@ -261,27 +273,27 @@ export default function Transactions() {
             </div>
           ) : (
             <div className="py-12 text-center">
-              <p className="text-gray-500 mb-4">No transactions found</p>
-              <button 
+              <p className="text-gray-500 mb-4">No statements found</p> {/* Mudança na mensagem */}
+              <button
                 className="btn btn-primary"
                 onClick={() => setShowForm(true)}
               >
                 <PlusCircle className="h-5 w-5 mr-2" />
-                Add Transaction
+                 Add Statement {/* Mudança no botão */}
               </button>
             </div>
           )}
         </div>
-        
-        {/* Transaction Form Modal */}
+
+        {/* Transaction Form Modal - Mantendo o nome do componente, mas mudando o título */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 max-w-md w-full animate-slide-up">
-              <h2 className="text-xl font-bold mb-4">Add New Transaction</h2>
-              <TransactionForm 
+              <h2 className="text-xl font-bold mb-4">Add New Statement</h2> {/* Mudança no título */}
+              <TransactionForm // Mantendo o nome do componente
                 onSuccess={() => setShowForm(false)}
               />
-              <button 
+              <button
                 className="mt-4 w-full py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                 onClick={() => setShowForm(false)}
               >
