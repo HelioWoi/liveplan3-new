@@ -8,7 +8,7 @@ import { ToastContainer } from './components/ui/Toast';
 // Lazy-loaded components
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Transactions = lazy(() => import('./pages/Statement'));
+const Transactions = lazy(() => import('./pages/Transactions'));
 const Goals = lazy(() => import('./pages/Goals'));
 const PassiveIncome = lazy(() => import('./pages/PassiveIncome'));
 const Profile = lazy(() => import('./pages/Profile'));
