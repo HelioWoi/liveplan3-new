@@ -34,6 +34,24 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Handle password reset from email link
+    const handlePasswordReset = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        const accessToken = hash.split('access_token=')[1]?.split('&')[0];
+        if (accessToken) {
+          // Remove the hash to clean up the URL
+          window.location.hash = '';
+          // Navigate to reset password with the token
+          navigate('/reset-password', { state: { accessToken } });
+        }
+      }
+    };
+
+    handlePasswordReset();
+  }, [navigate]);
+
+  useEffect(() => {
     // Check active session
     const checkSession = async () => {
       try {
@@ -42,6 +60,7 @@ function App() {
         if (error) {
           console.error('Session check error:', error);
           setUser(null);
+          navigate('/login');
           return;
         }
 
@@ -49,10 +68,14 @@ function App() {
           setUser(session.user);
         } else {
           setUser(null);
+          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+            navigate('/login');
+          }
         }
       } catch (error) {
         console.error('Session check failed:', error);
         setUser(null);
+        navigate('/login');
       }
     };
 
@@ -61,16 +84,32 @@ function App() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || !session) {
+        console.log('Auth state change:', event);
+        
+        if (event === 'SIGNED_OUT') {
           setUser(null);
-          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+          navigate('/login');
+          return;
+        }
+
+        if (event === 'TOKEN_REFRESHED') {
+          // Re-check session when token is refreshed
+          const { data: { session: newSession }, error } = await supabase.auth.getSession();
+          if (error || !newSession) {
+            console.error('Token refresh failed:', error);
+            setUser(null);
             navigate('/login');
+            return;
           }
+          setUser(newSession.user);
           return;
         }
 
         if (session) {
           setUser(session.user);
+        } else if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+          setUser(null);
+          navigate('/login');
         }
       }
     );
@@ -105,7 +144,7 @@ function App() {
           />
           <Route 
             path="/reset-password" 
-            element={user ? <Navigate to="/" replace /> : <ResetPassword />} 
+            element={<ResetPassword />} 
           />
 
           {/* Protected routes */}
