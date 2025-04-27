@@ -60,9 +60,9 @@ export default function Register() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A40] to-transparent opacity-90"></div>
         <div className="relative h-full flex items-center justify-center text-white p-16">
           <div className="max-w-xl text-center">
-            <h2 className="text-4xl font-bold mb-6">Start your financial journey today</h2>
+            <h2 className="text-4xl font-bold mb-6">From Small Beginnings Come Great Achievements</h2>
             <p className="text-lg text-gray-200">
-              Join thousands of users who are already achieving their financial goals with LivePlan³'s powerful planning tools.
+              Thousands are building their future one step at a time with LivePlan³ — join them!
             </p>
           </div>
         </div>
