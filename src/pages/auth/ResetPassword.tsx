@@ -54,6 +54,7 @@ export default function ResetPassword() {
         setResetSuccess(true);
       }
     } catch (error: any) {
+      console.error('Reset password error:', error);
       setResetError(error.message || 'Failed to process request. Please try again.');
     } finally {
       setIsLoading(false);
