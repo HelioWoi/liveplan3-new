@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSupabase } from '../../lib/supabase/SupabaseProvider';
 import { LockKeyhole, ArrowLeft } from 'lucide-react';
@@ -12,11 +12,39 @@ interface ResetFormValues {
 export default function ResetPassword() {
   const { supabase } = useSupabase();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormValues>();
   const password = watch('password');
+
+  // Get access token from URL hash or location state
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      // Extract access token
+      const accessToken = hash.split('access_token=')[1]?.split('&')[0];
+      if (!accessToken) {
+        setResetError('Invalid reset link. Please request a new password reset.');
+        return;
+      }
+
+      // Set the access token in session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          // If no session, set the access token
+          supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: '',
+          });
+        }
+      });
+
+      // Clean up URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [supabase.auth]);
 
   const onSubmit = async (data: ResetFormValues) => {
     setIsLoading(true);
@@ -28,6 +56,9 @@ export default function ResetPassword() {
       });
 
       if (error) throw error;
+      
+      // Sign out to clear the recovery session
+      await supabase.auth.signOut();
       
       // Redirect to login with success message
       navigate('/login', {
