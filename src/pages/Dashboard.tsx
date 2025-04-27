@@ -23,6 +23,7 @@ const CHART_COLORS = {
 
 type Period = 'day' | 'week' | 'month' | 'year';
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const years = ['2022', '2023', '2024', '2025'];
 
 export default function Dashboard() {
   const { supabase } = useSupabase();
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
   const [selectedMonth, setSelectedMonth] = useState('April');
+  const [selectedYear, setSelectedYear] = useState('2025');
   
   useEffect(() => {
     fetchTransactions(supabase);
@@ -157,7 +159,6 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Month Selection */}
           {selectedPeriod === 'month' && (
             <div className="flex flex-wrap gap-2">
               {months.map(month => (
@@ -170,6 +171,23 @@ export default function Dashboard() {
                   )}
                 >
                   {month}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedPeriod === 'year' && (
+            <div className="flex flex-wrap gap-2">
+              {years.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={classNames(
+                    'px-3 py-1 rounded-md text-sm border',
+                    selectedYear === year ? 'bg-purple-500 text-white border-purple-600' : 'text-gray-700 border-gray-300'
+                  )}
+                >
+                  {year}
                 </button>
               ))}
             </div>
