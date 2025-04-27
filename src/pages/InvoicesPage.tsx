@@ -1,33 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
-import { format, startOfYear, endOfDay, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { Download, Filter, PlusCircle, FileText, Calendar, DollarSign, TrendingUp, X, HelpCircle } from 'lucide-react';
 import classNames from 'classnames';
 import PageHeader from '../components/layout/PageHeader';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import { formatCurrency } from '../utils/formatters';
-
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  company?: string;
-}
-
-interface Invoice {
-  id: string;
-  number: string;
-  date: string;
-  dueDate: string;
-  clientId: string;
-  amount: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
-  description: string;
-  taxRate: number;
-}
 
 interface NewInvoice {
   number: string;
@@ -41,52 +20,6 @@ interface NewInvoice {
 export default function InvoicesPage() {
   const navigate = useNavigate();
   const { transactions } = useTransactionStore();
-
-  // Demo data
-  const demoClients: Client[] = [
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john@example.com',
-      phone: '+1234567890',
-      address: '123 Business St, City',
-      company: 'Tech Corp'
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah@example.com',
-      phone: '+0987654321',
-      address: '456 Enterprise Ave, Town',
-      company: 'Design Studio'
-    }
-  ];
-
-  const demoInvoices: Invoice[] = [
-    {
-      id: '1',
-      number: 'INV-2025-001',
-      date: '2025-04-01',
-      dueDate: '2025-04-15',
-      clientId: '1',
-      amount: 2500,
-      status: 'paid',
-      description: 'Web Development Services - March 2025',
-      taxRate: 10
-    },
-    {
-      id: '2',
-      number: 'INV-2025-002',
-      date: '2025-04-10',
-      dueDate: '2025-04-24',
-      clientId: '2',
-      amount: 1800,
-      status: 'sent',
-      description: 'UI/UX Design Project',
-      taxRate: 10
-    }
-  ];
-
   const [selectedPeriod, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [selectedYear, setSelectedYear] = useState('2025');
   const [selectedMonth, setSelectedMonth] = useState('April');
@@ -96,7 +29,7 @@ export default function InvoicesPage() {
 
   // New invoice form state
   const [newInvoice, setNewInvoice] = useState<NewInvoice>({
-    number: `INV-${selectedYear}-${String(demoInvoices.length + 1).padStart(3, '0')}`,
+    number: `INV-${selectedYear}-001`,
     clientId: '',
     amount: '',
     description: '',
@@ -108,39 +41,28 @@ export default function InvoicesPage() {
   const years = ['2024', '2025'];
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+  // Filter invoices from transactions
+  const invoices = transactions.filter(t => t.category === 'Invoices');
+
   // Calculate summary statistics
   const stats = {
-    totalInvoiced: demoInvoices.reduce((sum, inv) => sum + inv.amount, 0),
-    totalPaid: demoInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.amount, 0),
-    totalPending: demoInvoices.filter(inv => inv.status === 'sent').reduce((sum, inv) => sum + inv.amount, 0),
-    totalOverdue: demoInvoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + inv.amount, 0)
+    totalInvoiced: invoices.reduce((sum, inv) => sum + inv.amount, 0),
+    totalPaid: invoices.filter(inv => new Date(inv.date) <= new Date()).reduce((sum, inv) => sum + inv.amount, 0),
+    totalPending: invoices.filter(inv => new Date(inv.date) > new Date()).reduce((sum, inv) => sum + inv.amount, 0),
+    totalOverdue: 0 // Calculate based on due dates if needed
   };
 
   // Calculate tax summary for the year
-  const yearStart = startOfYear(new Date());
-  const yearEnd = endOfDay(new Date(new Date().getFullYear(), 11, 31));
-  
-  const yearlyTaxSummary = demoInvoices
-    .filter(inv => {
-      const invDate = parseISO(inv.date);
-      return invDate >= yearStart && invDate <= yearEnd;
-    })
-    .reduce((summary, inv) => {
-      const taxAmount = inv.amount * (inv.taxRate / 100);
-      return {
-        totalAmount: summary.totalAmount + inv.amount,
-        totalTax: summary.totalTax + taxAmount
-      };
-    }, { totalAmount: 0, totalTax: 0 });
+  const yearlyTaxSummary = {
+    totalAmount: stats.totalInvoiced,
+    totalTax: stats.totalInvoiced * 0.1 // Assuming 10% tax rate
+  };
 
   const handleSubmitInvoice = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle invoice submission here
-    console.log('New Invoice:', newInvoice);
     setShowNewInvoiceModal(false);
-    // Reset form
     setNewInvoice({
-      number: `INV-${selectedYear}-${String(demoInvoices.length + 2).padStart(3, '0')}`,
+      number: `INV-${selectedYear}-${String(invoices.length + 1).padStart(3, '0')}`,
       clientId: '',
       amount: '',
       description: '',
@@ -149,9 +71,9 @@ export default function InvoicesPage() {
     });
   };
 
-  const handleDownloadInvoice = (invoice: Invoice) => {
+  const handleDownloadInvoice = (invoiceId: string) => {
     // Implementation for downloading invoice
-    console.log('Downloading invoice:', invoice.number);
+    console.log('Downloading invoice:', invoiceId);
   };
 
   const handleNewClient = () => {
@@ -287,9 +209,6 @@ export default function InvoicesPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <select className="input">
                 <option value="">All Clients</option>
-                {demoClients.map(client => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
-                ))}
               </select>
 
               <select className="input">
@@ -338,66 +257,69 @@ export default function InvoicesPage() {
 
         {/* Invoices List */}
         <div className="bg-white rounded-xl shadow-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {demoInvoices.map(invoice => {
-                  const client = demoClients.find(c => c.id === invoice.clientId);
-                  return (
+          {invoices.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {invoices.map(invoice => (
                     <tr key={invoice.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {invoice.number}
+                        INV-{format(new Date(invoice.date), 'yyyyMM')}-{invoice.id.slice(0, 3)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {client?.name}
+                        {invoice.origin}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(parseISO(invoice.date), 'MMM d, yyyy')}
+                        {format(new Date(invoice.date), 'MMM d, yyyy')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(parseISO(invoice.dueDate), 'MMM d, yyyy')}
+                        {format(new Date(invoice.date), 'MMM d, yyyy')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
                         {formatCurrency(invoice.amount)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={classNames(
-                          'px-2 py-1 text-xs font-medium rounded-full',
-                          {
-                            'bg-gray-100 text-gray-800': invoice.status === 'draft',
-                            'bg-primary-100 text-primary-800': invoice.status === 'sent',
-                            'bg-success-100 text-success-800': invoice.status === 'paid',
-                            'bg-error-100 text-error-800': invoice.status === 'overdue',
-                          }
-                        )}>
-                          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-success-100 text-success-800">
+                          Paid
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                         <button
-                          onClick={() => handleDownloadInvoice(invoice)}
+                          onClick={() => handleDownloadInvoice(invoice.id)}
                           className="text-primary-600 hover:text-primary-900"
                         >
                           <Download className="h-5 w-5" />
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500 mb-4">No invoices found</p>
+              <button 
+                onClick={() => setShowNewInvoiceModal(true)}
+                className="btn btn-primary"
+              >
+                <PlusCircle className="h-5 w-5 mr-2" />
+                Create Your First Invoice
+              </button>
+            </div>
+          )}
         </div>
 
         {/* New Invoice Modal */}
@@ -436,9 +358,6 @@ export default function InvoicesPage() {
                       required
                     >
                       <option value="">Select Client</option>
-                      {demoClients.map(client => (
-                        <option key={client.id} value={client.id}>{client.name}</option>
-                      ))}
                     </select>
                   </div>
 
