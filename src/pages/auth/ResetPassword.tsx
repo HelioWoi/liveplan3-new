@@ -19,50 +19,54 @@ export default function ResetPassword() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormValues>();
   const password = watch('password');
 
-  // Get access token from URL hash
+  // Get access token from URL hash or location state
   useEffect(() => {
     const setupSession = async () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('type=recovery')) {
-        try {
-          // Extract access token
-          const accessToken = hash.split('access_token=')[1]?.split('&')[0];
-          if (!accessToken) {
-            setResetError('Invalid reset link. Please request a new password reset.');
-            return;
-          }
+      try {
+        // First check URL hash for access token
+        const hash = window.location.hash;
+        let accessToken = '';
 
-          // Set up the session with the access token
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: '',
-          });
-
-          if (error) throw error;
-
+        if (hash && hash.includes('type=recovery')) {
+          accessToken = hash.split('access_token=')[1]?.split('&')[0];
           // Clean up URL
           window.history.replaceState(null, '', window.location.pathname);
-        } catch (error: any) {
-          console.error('Failed to set up session:', error);
-          setResetError('Failed to validate reset link. Please request a new password reset.');
         }
+
+        // If no token in hash, check location state
+        if (!accessToken && location.state?.accessToken) {
+          accessToken = location.state.accessToken;
+        }
+
+        if (!accessToken) {
+          setResetError('Invalid reset link. Please request a new password reset.');
+          return;
+        }
+
+        // Set up the session with the access token
+        const { data: { session }, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: '',
+        });
+
+        if (error || !session) {
+          throw new Error('Failed to validate reset link');
+        }
+
+      } catch (error: any) {
+        console.error('Failed to set up session:', error);
+        setResetError('Invalid or expired reset link. Please request a new password reset.');
       }
     };
 
     setupSession();
-  }, [supabase.auth]);
+  }, [supabase.auth, location.state]);
 
   const onSubmit = async (data: ResetFormValues) => {
     setIsLoading(true);
     setResetError(null);
     
     try {
-      // Get current session to verify we have access
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        throw new Error('Invalid or expired reset link. Please request a new password reset.');
-      }
-
       // Update password
       const { error } = await supabase.auth.updateUser({
         password: data.password
