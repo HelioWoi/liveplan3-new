@@ -74,7 +74,21 @@ function App() {
         }
 
         if (session) {
-          setUser(session.user);
+          const currentUser = session.user;
+          setUser(currentUser);
+
+          // Check if user needs onboarding
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_completed')
+            .eq('user_id', currentUser.id)
+            .single();
+
+          // If user is new or hasn't completed onboarding, redirect to onboarding
+          if (!profile?.onboarding_completed && location.pathname !== '/onboarding') {
+            navigate('/onboarding');
+            return;
+          }
         } else {
           setUser(null);
           if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
@@ -128,7 +142,21 @@ function App() {
         }
 
         if (session) {
-          setUser(session.user);
+          const currentUser = session.user;
+          setUser(currentUser);
+
+          // Check if user needs onboarding
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_completed')
+            .eq('user_id', currentUser.id)
+            .single();
+
+          // If user is new or hasn't completed onboarding, redirect to onboarding
+          if (!profile?.onboarding_completed && location.pathname !== '/onboarding') {
+            navigate('/onboarding');
+            return;
+          }
         } else if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
           setUser(null);
           navigate('/login');
