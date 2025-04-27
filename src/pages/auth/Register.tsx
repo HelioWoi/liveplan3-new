@@ -26,29 +26,23 @@ export default function Register() {
     setRegistrationError(null);
     
     try {
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY || 
-          import.meta.env.VITE_SUPABASE_URL === 'https://example.supabase.co' || 
-          import.meta.env.VITE_SUPABASE_ANON_KEY === 'dummy-key') {
-        throw new Error('Supabase is not properly configured. Please connect to Supabase first.');
-      }
-      
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
+      const { error } = await supabase.auth.signUp({
+        email: data.email.toLowerCase().trim(),
         password: data.password,
         options: {
           data: {
-            full_name: data.fullName,
+            full_name: data.fullName.trim(),
           },
+          emailRedirectTo: `${window.location.origin}/login`,
         },
       });
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
+      // Show success message and redirect to login
       navigate('/login', { 
         state: { 
-          message: 'Registration successful! Please sign in with your new account.' 
+          message: 'Registration successful! Please check your email to confirm your account.' 
         } 
       });
     } catch (error: any) {
@@ -79,9 +73,9 @@ export default function Register() {
         <div className="max-w-md w-full mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-[#1A1A40] to-[#9b87f5] bg-clip-text text-transparent">
-              LivePlan³
+              Create Account
             </h1>
-            <p className="text-gray-600">Create your account and start planning</p>
+            <p className="text-gray-600">Join LivePlan³ and start planning your future</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
