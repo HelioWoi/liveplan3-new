@@ -14,6 +14,7 @@ const Simulator = lazy(() => import('./pages/PassiveIncome'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
+const RequestPasswordReset = lazy(() => import('./pages/auth/RequestPasswordReset'));
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Income = lazy(() => import('./pages/IncomePage'));
@@ -66,7 +67,7 @@ function App() {
         if (error) {
           console.error('Session check error:', error);
           setUser(null);
-          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
             navigate('/login');
           }
           return;
@@ -76,14 +77,14 @@ function App() {
           setUser(session.user);
         } else {
           setUser(null);
-          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
             navigate('/login');
           }
         }
       } catch (error) {
         console.error('Session check failed:', error);
         setUser(null);
-        if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+        if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
           navigate('/login');
         }
       }
@@ -128,7 +129,7 @@ function App() {
 
         if (session) {
           setUser(session.user);
-        } else if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+        } else if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
           setUser(null);
           navigate('/login');
         }
@@ -162,6 +163,10 @@ function App() {
           <Route 
             path="/register" 
             element={user ? <Navigate to="/" replace /> : <Register />} 
+          />
+          <Route 
+            path="/request-password-reset" 
+            element={user ? <Navigate to="/" replace /> : <RequestPasswordReset />} 
           />
           <Route 
             path="/reset-password" 
