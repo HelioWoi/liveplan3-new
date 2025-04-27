@@ -58,6 +58,7 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
         navigate('/invoices');
         break;
       case 'Goal':
+      case 'Contribution':
         onClose();
         navigate('/goals');
         break;
@@ -66,20 +67,19 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-
+    if (!user || !formData.amount) return;
+    
     setIsSubmitting(true);
     
     try {
-      // If category is Contribution, redirect to simulator
-      if (formData.category === 'Contribution') {
-        onClose();
-        navigate('/simulator', { 
-          state: { 
-            initialInvestment: formData.amount.replace(/,/g, ''),
-            origin: formData.origin
-          }
-        });
+      // Handle special categories
+      if (formData.category === 'Invoices') {
+        navigate('/invoices');
+        return;
+      }
+
+      if (formData.category === 'Goal' || formData.category === 'Contribution') {
+        navigate('/goals');
         return;
       }
 
@@ -91,8 +91,7 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
         date: formData.date,
         userId: user.id,
       });
-
-      // Reset form and close modal
+      
       setFormData({
         origin: '',
         category: 'Fixed',
@@ -126,24 +125,13 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="text-lg font-medium text-gray-900 mb-2 block">
-                Origin / Description <span className="text-error-600">*</span>
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border border-gray-200 focus:border-[#120B39] focus:ring-[#120B39] transition-colors"
-                placeholder="Salary, Rent payment, etc."
-                value={formData.origin}
-                onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-lg font-medium text-gray-900 mb-2 block">
                 Category <span className="text-error-600">*</span>
               </label>
-              <select
-                className="w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border border-gray-200 focus:border-[#120B39] focus:ring-[#120B39] transition-colors"
+              <select 
+                className={classNames(
+                  "w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border transition-colors appearance-none",
+                  "border-gray-200 focus:border-[#120B39] focus:ring-[#120B39]"
+                )}
                 value={formData.category}
                 onChange={handleCategoryChange}
                 required
@@ -156,12 +144,27 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
 
             <div>
               <label className="text-lg font-medium text-gray-900 mb-2 block">
+                Origin / Description <span className="text-error-600">*</span>
+              </label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border border-gray-200 focus:border-[#120B39] focus:ring-[#120B39] transition-colors"
+                placeholder="Salary, Rent payment, etc."
+                value={formData.origin}
+                onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-lg font-medium text-gray-900 mb-2 block">
                 Amount <span className="text-error-600">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">AU$</span>
-                <input
+                <input 
                   type="text"
+                  inputMode="decimal"
                   className="w-full pl-12 pr-4 py-3 text-lg bg-gray-50 rounded-xl border border-gray-200 focus:border-[#120B39] focus:ring-[#120B39] transition-colors"
                   placeholder="0.00"
                   value={formData.amount}
@@ -176,8 +179,8 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
                 Date <span className="text-error-600">*</span>
               </label>
               <div className="relative">
-                <input
-                  type="date"
+                <input 
+                  type="date" 
                   className="w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border border-gray-200 focus:border-[#120B39] focus:ring-[#120B39] transition-colors"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
@@ -187,7 +190,7 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={isSubmitting}
