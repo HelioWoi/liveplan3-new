@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSupabase } from '../../lib/supabase/SupabaseProvider';
@@ -18,8 +18,14 @@ export default function ResetPassword() {
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<boolean>(false);
   
-  // Get access token from location state (passed from App.tsx)
-  const accessToken = location.state?.accessToken;
+  // Check for recovery token in URL
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      // Remove the hash to clean up the URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormValues>();
   const password = watch('password');
@@ -30,7 +36,7 @@ export default function ResetPassword() {
     setResetSuccess(false);
     
     try {
-      if (accessToken) {
+      if (location.hash && location.hash.includes('type=recovery')) {
         // Update password
         const { error } = await supabase.auth.updateUser({
           password: data.password as string
@@ -61,6 +67,9 @@ export default function ResetPassword() {
     }
   };
 
+  // Check if we're in reset password mode (has recovery token)
+  const isResettingPassword = location.hash && location.hash.includes('type=recovery');
+
   return (
     <div className="min-h-screen flex flex-col justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary-50 to-white py-12">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -68,10 +77,10 @@ export default function ResetPassword() {
           <PiggyBank className="h-12 w-12 text-primary-600" />
         </div>
         <h2 className="mt-4 text-center text-3xl font-bold tracking-tight text-gray-900">
-          {accessToken ? 'Set New Password' : 'Reset your password'}
+          {isResettingPassword ? 'Set New Password' : 'Reset your password'}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          {accessToken 
+          {isResettingPassword 
             ? 'Enter your new password below'
             : 'We'll send you an email with a link to reset your password'
           }
@@ -86,10 +95,10 @@ export default function ResetPassword() {
                 <Mail className="h-8 w-8 text-success-600" />
               </div>
               <h3 className="mt-4 text-lg font-medium text-gray-900">
-                {accessToken ? 'Password Updated!' : 'Check your email'}
+                {isResettingPassword ? 'Password Updated!' : 'Check your email'}
               </h3>
               <p className="mt-2 text-sm text-gray-600">
-                {accessToken
+                {isResettingPassword
                   ? 'Your password has been changed successfully.'
                   : 'We've sent you an email with a link to reset your password. Please check your inbox.'
                 }
@@ -118,7 +127,7 @@ export default function ResetPassword() {
                 </div>
               )}
               
-              {accessToken ? (
+              {isResettingPassword ? (
                 <>
                   <div>
                     <label htmlFor="password" className="label">
@@ -200,7 +209,7 @@ export default function ResetPassword() {
                 >
                   {isLoading 
                     ? 'Processing...' 
-                    : accessToken 
+                    : isResettingPassword 
                       ? 'Update Password'
                       : 'Send reset link'
                   }
