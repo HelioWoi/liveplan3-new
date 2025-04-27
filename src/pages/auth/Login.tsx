@@ -183,9 +183,9 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A40] to-transparent opacity-90"></div>
         <div className="relative h-full flex items-center justify-center text-white p-16">
           <div className="max-w-xl text-center">
-            <h2 className="text-4xl font-bold mb-6">Take control of your financial future</h2>
+            <h2 className="text-4xl font-bold mb-6">Take the first step toward financial organization.</h2>
             <p className="text-lg text-gray-200">
-              Track your expenses, set goals, and watch your wealth grow with LivePlan³'s comprehensive financial planning tools.
+              With LivePlan³, your financial journey starts with small, consistent actions.
             </p>
           </div>
         </div>
