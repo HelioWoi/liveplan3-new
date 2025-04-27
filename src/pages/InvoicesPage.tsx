@@ -80,6 +80,10 @@ export default function InvoicesPage() {
     setShowNewClientModal(true);
   };
 
+  const handleAddInvoice = () => {
+    setShowNewInvoiceModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <PageHeader title="Invoices" />
@@ -486,7 +490,7 @@ export default function InvoicesPage() {
           </div>
         )}
 
-        <BottomNavigation />
+        <BottomNavigation onAddClick={handleAddInvoice} />
       </div>
     </div>
   );
