@@ -18,6 +18,9 @@ export default function ResetPassword() {
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<boolean>(false);
   
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormValues>();
+  const password = watch('password');
+  
   // Check for recovery token in URL
   useEffect(() => {
     const hash = window.location.hash;
@@ -26,10 +29,7 @@ export default function ResetPassword() {
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
-  
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormValues>();
-  const password = watch('password');
-  
+
   const onSubmit = async (data: ResetFormValues) => {
     setIsLoading(true);
     setResetError(null);
@@ -71,74 +71,67 @@ export default function ResetPassword() {
   const isResettingPassword = location.hash && location.hash.includes('type=recovery');
 
   return (
-    <div className="min-h-screen flex flex-col justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary-50 to-white py-12">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <PiggyBank className="h-12 w-12 text-primary-600" />
-        </div>
-        <h2 className="mt-4 text-center text-3xl font-bold tracking-tight text-gray-900">
-          {isResettingPassword ? 'Set New Password' : 'Reset your password'}
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          {isResettingPassword 
-            ? 'Enter your new password below'
-            : 'We'll send you an email with a link to reset your password'
-          }
-        </p>
-      </div>
+    <div className="min-h-screen flex">
+      {/* Left side - Form */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-16 animate-fade-in">
+        <div className="max-w-md w-full mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-[#1A1A40] to-[#9b87f5] bg-clip-text text-transparent">
+              {isResettingPassword ? 'Set New Password' : 'Reset Password'}
+            </h1>
+            <p className="text-gray-600">
+              {isResettingPassword 
+                ? 'Create a new password for your account'
+                : 'We'll send you instructions to reset your password'
+              }
+            </p>
+          </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-xl sm:px-10">
           {resetSuccess ? (
             <div className="text-center">
-              <div className="rounded-full bg-success-100 p-3 mx-auto w-16 h-16 flex items-center justify-center">
+              <div className="rounded-full bg-success-100 p-3 mx-auto w-16 h-16 flex items-center justify-center mb-4">
                 <Mail className="h-8 w-8 text-success-600" />
               </div>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
                 {isResettingPassword ? 'Password Updated!' : 'Check your email'}
               </h3>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="text-gray-600 mb-6">
                 {isResettingPassword
                   ? 'Your password has been changed successfully.'
                   : 'We've sent you an email with a link to reset your password. Please check your inbox.'
                 }
               </p>
-              <div className="mt-6">
-                <Link
-                  to="/login"
-                  className="btn btn-primary w-full py-3"
-                >
+              <Link
+                to="/login"
+                className="relative w-full h-12 bg-[#1A1A40] text-white rounded-lg font-medium hover:bg-[#2A2A50] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 overflow-hidden group inline-flex items-center justify-center"
+              >
+                <span className="absolute inset-0 w-0 bg-[#9b87f5] transition-all duration-500 ease-out group-hover:w-full"></span>
+                <span className="relative flex items-center">
                   Return to login
-                </Link>
-              </div>
+                  <ArrowLeft className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Link>
             </div>
           ) : (
-            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {resetError && (
-                <div className="rounded-md bg-error-50 p-4">
-                  <div className="flex">
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-error-800">Reset Error</h3>
-                      <div className="mt-2 text-sm text-error-700">
-                        <p>{resetError}</p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="p-4 rounded-lg bg-error-50 border border-error-200 animate-slide-down">
+                  <p className="text-sm text-error-700">{resetError}</p>
                 </div>
               )}
-              
+
               {isResettingPassword ? (
                 <>
                   <div>
-                    <label htmlFor="password" className="label">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                       New Password
                     </label>
-                    <div className="relative mt-1">
+                    <div className="relative">
                       <LockKeyhole className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                       <input
                         id="password"
                         type="password"
-                        className="input pl-10"
+                        className="pl-10 w-full h-12 bg-gray-50 text-gray-900 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
                         placeholder="••••••••"
                         {...register('password', { 
                           required: 'New password is required',
@@ -152,15 +145,15 @@ export default function ResetPassword() {
                   </div>
 
                   <div>
-                    <label htmlFor="confirmPassword" className="label">
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm New Password
                     </label>
-                    <div className="relative mt-1">
+                    <div className="relative">
                       <LockKeyhole className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                       <input
                         id="confirmPassword"
                         type="password"
-                        className="input pl-10"
+                        className="pl-10 w-full h-12 bg-gray-50 text-gray-900 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
                         placeholder="••••••••"
                         {...register('confirmPassword', { 
                           required: 'Please confirm your password',
@@ -175,16 +168,15 @@ export default function ResetPassword() {
                 </>
               ) : (
                 <div>
-                  <label htmlFor="email" className="label">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                     Email address
                   </label>
-                  <div className="relative mt-1">
+                  <div className="relative">
                     <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     <input
                       id="email"
                       type="email"
-                      autoComplete="email"
-                      className="input pl-10"
+                      className="pl-10 w-full h-12 bg-gray-50 text-gray-900 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
                       placeholder="you@example.com"
                       {...register('email', { 
                         required: 'Email is required',
@@ -201,25 +193,33 @@ export default function ResetPassword() {
                 </div>
               )}
 
-              <div>
-                <button
-                  type="submit"
-                  className="btn btn-primary w-full py-3"
-                  disabled={isLoading}
-                >
+              <button
+                type="submit"
+                className="relative w-full h-12 bg-[#1A1A40] text-white rounded-lg font-medium hover:bg-[#2A2A50] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 overflow-hidden group"
+                disabled={isLoading}
+              >
+                <span className="absolute inset-0 w-0 bg-[#9b87f5] transition-all duration-500 ease-out group-hover:w-full"></span>
+                <span className="relative flex items-center justify-center">
                   {isLoading 
-                    ? 'Processing...' 
-                    : isResettingPassword 
-                      ? 'Update Password'
-                      : 'Send reset link'
+                    ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : (
+                      isResettingPassword ? 'Update Password' : 'Send Reset Link'
+                    )
                   }
-                </button>
-              </div>
-              
+                </span>
+              </button>
+
               <div className="text-center">
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-primary-600 hover:text-primary-500 flex items-center justify-center"
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Back to login
@@ -227,6 +227,20 @@ export default function ResetPassword() {
               </div>
             </form>
           )}
+        </div>
+      </div>
+
+      {/* Right side - Background */}
+      <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-[#1A1A40] to-[#9b87f5] relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/7567473/pexels-photo-7567473.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')] opacity-10 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A40] to-transparent opacity-90"></div>
+        <div className="relative h-full flex items-center justify-center text-white p-16">
+          <div className="max-w-xl text-center">
+            <h2 className="text-4xl font-bold mb-6">Reset with Confidence</h2>
+            <p className="text-lg text-gray-200">
+              Your financial journey is important to us. Let's get you back on track with a secure password reset.
+            </p>
+          </div>
         </div>
       </div>
     </div>
