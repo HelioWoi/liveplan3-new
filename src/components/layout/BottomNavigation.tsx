@@ -1,10 +1,25 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Home, BarChart2, TrendingUp, User } from 'lucide-react';
 
-export default function BottomNavigation() {
+interface BottomNavigationProps {
+  onAddClick?: () => void;
+}
+
+export default function BottomNavigation({ onAddClick }: BottomNavigationProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
+  const isInvoicesPage = location.pathname === '/invoices';
+
+  const handleAddClick = () => {
+    if (isInvoicesPage && onAddClick) {
+      onAddClick();
+      return;
+    }
+    // Default behavior for other pages
+    navigate('/transactions');
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
@@ -30,14 +45,14 @@ export default function BottomNavigation() {
 
           {/* Center "+" button */}
           <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-0">
-            <Link 
-              to="/transactions" 
+            <button 
+              onClick={handleAddClick}
               className="flex flex-col items-center"
             >
               <div className="w-14 h-14 rounded-full bg-primary-600 flex items-center justify-center text-white shadow-lg hover:bg-primary-700 transition-colors">
                 <span className="text-2xl">+</span>
               </div>
-            </Link>
+            </button>
           </div>
 
           {/* Right side links */}
