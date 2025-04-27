@@ -7,7 +7,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  server: {
-    historyApiFallback: true, // <- ESSENCIAL para rotas como /login funcionarem
-  },
 });
