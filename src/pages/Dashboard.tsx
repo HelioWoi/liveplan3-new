@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useGoalsStore } from '../stores/goalsStore';
-import { PlusCircle, Briefcase, Pin, DollarSign, Wallet, PiggyBank, ChevronRight, Target, ArrowUpCircle, ArrowDownCircle, Download } from 'lucide-react';
+import { PlusCircle, Download, ChevronRight, DollarSign, Wallet, PiggyBank, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import TransactionForm from '../components/forms/TransactionForm';
 import BottomNavigation from '../components/layout/BottomNavigation';
@@ -22,6 +22,7 @@ const CHART_COLORS = {
 };
 
 type Period = 'day' | 'week' | 'month' | 'year';
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function Dashboard() {
   const { supabase } = useSupabase();
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const { goals, fetchGoals } = useGoalsStore();
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
+  const [selectedMonth, setSelectedMonth] = useState('April');
   
   useEffect(() => {
     fetchTransactions(supabase);
@@ -110,7 +112,7 @@ export default function Dashboard() {
       headers.join(','),
       ...filteredTransactions.map(t => [
         format(new Date(t.date), 'yyyy-MM-dd'),
-        `"${t.description.replace(/"/g, '""')}"`,
+        `"${t.origin.replace(/"/g, '""')}"`,
         t.amount,
         t.type,
         t.category
@@ -121,7 +123,7 @@ export default function Dashboard() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `transactions_${selectedPeriod}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute('download', `statement_${selectedPeriod}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -136,39 +138,60 @@ export default function Dashboard() {
       />
       
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowTransactionForm(true)}
-            >
-              <PlusCircle className="h-5 w-5 mr-2" />
-              Add Transaction
-            </button>
-            <button 
-              className="btn btn-outline"
-              onClick={exportToCSV}
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Export Data
-            </button>
-          </div>
-          
-          <div className="flex bg-white rounded-lg shadow-sm">
+        {/* Period Selection */}
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex gap-3 items-center flex-wrap">
             {(['day', 'week', 'month', 'year'] as Period[]).map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
                 className={classNames(
-                  'px-3 py-1.5 text-sm font-medium capitalize transition-colors',
+                  'px-4 py-1 rounded-full text-sm font-medium border',
                   selectedPeriod === period
-                    ? 'bg-primary-600 text-white rounded-lg'
-                    : 'text-gray-600 hover:text-primary-600'
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'text-gray-700 border-gray-300 hover:border-purple-300'
                 )}
               >
-                {period}
+                {period.charAt(0).toUpperCase() + period.slice(1)}
               </button>
             ))}
+          </div>
+
+          {/* Month Selection */}
+          {selectedPeriod === 'month' && (
+            <div className="flex flex-wrap gap-2">
+              {months.map(month => (
+                <button
+                  key={month}
+                  onClick={() => setSelectedMonth(month)}
+                  className={classNames(
+                    'px-3 py-1 rounded-md text-sm border',
+                    selectedMonth === month ? 'bg-purple-500 text-white border-purple-600' : 'text-gray-700 border-gray-300'
+                  )}
+                >
+                  {month}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex gap-2">
+            <button 
+              className="btn btn-primary flex-1 sm:flex-none"
+              onClick={() => setShowTransactionForm(true)}
+            >
+              <PlusCircle className="h-5 w-5 mr-2" />
+              Add New
+            </button>
+            <button 
+              className="btn btn-outline flex-1 sm:flex-none"
+              onClick={exportToCSV}
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Export CSV
+            </button>
           </div>
         </div>
         
@@ -202,42 +225,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Expense Categories */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Expense Categories</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl p-6 shadow-card">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                  <Briefcase className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Extras</h3>
-                  <p className="text-sm text-gray-500">Discretionary spending</p>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                ${(financialSummary.categoryTotals.extra || 0).toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-card">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
-                  <Pin className="h-5 w-5 text-pink-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Additional</h3>
-                  <p className="text-sm text-gray-500">Other expenses</p>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                ${(financialSummary.categoryTotals.additional || 0).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Formula3 */}
         <div className="mb-8">
           <Formula3 data={formula3Data} />
@@ -248,11 +235,11 @@ export default function Dashboard() {
           <TopGoals />
         </div>
 
-        {/* Recent Transactions */}
+        {/* Recent Statement */}
         <div className="bg-white rounded-xl shadow-card overflow-hidden mb-8">
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
-            <h2 className="text-xl font-bold">Recent Transactions</h2>
-            <Link to="/transactions" className="text-primary-600 hover:text-primary-700 font-medium flex items-center">
+            <h2 className="text-xl font-bold">Recent Statement</h2>
+            <Link to="/statement" className="text-primary-600 hover:text-primary-700 font-medium flex items-center">
               View All <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
@@ -270,7 +257,7 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{transaction.description}</p>
+                    <p className="font-medium text-gray-900">{transaction.origin}</p>
                     <p className="text-sm text-gray-500">{format(new Date(transaction.date), 'MMM d, yyyy')}</p>
                   </div>
                 </div>
@@ -323,7 +310,7 @@ export default function Dashboard() {
         {showTransactionForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 max-w-md w-full animate-slide-up">
-              <h2 className="text-xl font-bold mb-4">Add New Transaction</h2>
+              <h2 className="text-xl font-bold mb-4">Add New Entry</h2>
               <TransactionForm 
                 onSuccess={() => setShowTransactionForm(false)}
               />

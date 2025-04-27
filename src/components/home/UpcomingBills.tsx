@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
+import { formatCurrency } from '../../utils/formatters';
 
 interface Bill {
   id: string;
@@ -75,7 +76,7 @@ export default function UpcomingBills() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-[#1F2533]">${bill.amount}</p>
+                <p className="font-bold text-[#1F2533]">{formatCurrency(bill.amount)}</p>
               </div>
             </div>
           </div>

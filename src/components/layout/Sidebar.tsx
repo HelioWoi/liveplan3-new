@@ -18,7 +18,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Goals', href: '/goals', icon: Target },
-  { name: 'Passive Income', href: '/passive-income', icon: TrendingUp },
+  { name: 'Simulator', href: '/simulator', icon: TrendingUp },
   { name: 'Profile', href: '/profile', icon: User },
 ];
 

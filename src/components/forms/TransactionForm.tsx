@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { Calendar } from 'lucide-react';
 import classNames from 'classnames';
 import { TransactionCategory, TRANSACTION_CATEGORIES, isIncomeCategory } from '../../types/transaction';
+import { useNavigate } from 'react-router-dom';
 
 interface TransactionFormProps {
   onSuccess?: () => void;
@@ -13,9 +14,9 @@ interface TransactionFormProps {
 }
 
 interface FormValues {
+  category: TransactionCategory;
   origin: string;
   amount: string;
-  category: TransactionCategory;
   date: string;
 }
 
@@ -26,14 +27,15 @@ export default function TransactionForm({
 }: TransactionFormProps) {
   const { addTransaction } = useTransactionStore();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [amountValue, setAmountValue] = useState('');
   
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
+      category: defaultCategory || 'Fixed',
       origin: '',
       amount: '',
-      category: defaultCategory || 'Fixed',
       date: new Date().toISOString().split('T')[0],
     }
   });
@@ -53,10 +55,28 @@ export default function TransactionForm({
     setIsSubmitting(true);
     
     try {
+      // If category is Invoices, redirect to invoices page
+      if (data.category === 'Invoices') {
+        navigate('/invoices');
+        return;
+      }
+
+      // If category is Contribution, redirect to simulator
+      if (data.category === 'Contribution') {
+        navigate('/simulator', { 
+          state: { 
+            initialInvestment: amountValue,
+            origin: data.origin
+          }
+        });
+        return;
+      }
+
       await addTransaction({
         origin: data.origin.trim(),
         amount: parseFloat(amountValue),
         category: data.category,
+        type: isIncomeCategory(data.category) ? 'income' : 'expense',
         date: data.date,
         userId: user.id,
       });
@@ -65,7 +85,7 @@ export default function TransactionForm({
       setAmountValue('');
       onSuccess?.();
     } catch (error) {
-      console.error('Failed to add transaction', error);
+      console.error('Failed to add entry', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -73,26 +93,6 @@ export default function TransactionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div>
-        <label className="text-lg font-medium text-gray-900 mb-2 block">
-          Origin / Description <span className="text-error-600">*</span>
-        </label>
-        <input 
-          type="text" 
-          className={classNames(
-            "w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border transition-colors",
-            errors.origin 
-              ? "border-error-300 focus:border-error-500 focus:ring-error-500"
-              : "border-gray-200 focus:border-[#120B39] focus:ring-[#120B39]"
-          )}
-          placeholder="Salary, Rent payment, etc."
-          {...register('origin', { required: 'Origin is required' })}
-        />
-        {errors.origin && (
-          <p className="mt-1 text-sm text-error-600">{errors.origin.message}</p>
-        )}
-      </div>
-
       <div>
         <label className="text-lg font-medium text-gray-900 mb-2 block">
           Category <span className="text-error-600">*</span>
@@ -118,6 +118,26 @@ export default function TransactionForm({
 
       <div>
         <label className="text-lg font-medium text-gray-900 mb-2 block">
+          Origin / Description <span className="text-error-600">*</span>
+        </label>
+        <input 
+          type="text" 
+          className={classNames(
+            "w-full px-4 py-3 text-lg bg-gray-50 rounded-xl border transition-colors",
+            errors.origin 
+              ? "border-error-300 focus:border-error-500 focus:ring-error-500"
+              : "border-gray-200 focus:border-[#120B39] focus:ring-[#120B39]"
+          )}
+          placeholder="Salary, Rent payment, etc."
+          {...register('origin', { required: 'Origin is required' })}
+        />
+        {errors.origin && (
+          <p className="mt-1 text-sm text-error-600">{errors.origin.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="text-lg font-medium text-gray-900 mb-2 block">
           Amount <span className="text-error-600">*</span>
         </label>
         <div className="relative">
@@ -128,7 +148,7 @@ export default function TransactionForm({
             className={classNames(
               "w-full pl-8 pr-4 py-3 text-lg bg-gray-50 rounded-xl border transition-colors",
               !amountValue
-                ? "border-error-300 focus:border-error-500 focus:ring-error-500"
+                ? "border-error-300 focus:border-error-500 focus:ring-error-500" 
                 : "border-gray-200 focus:border-[#120B39] focus:ring-[#120B39]"
             )}
             placeholder="0.00"
@@ -173,7 +193,7 @@ export default function TransactionForm({
         )}
         disabled={isSubmitting || !amountValue}
       >
-        {isSubmitting ? 'Adding...' : `Add ${isIncomeCategory(selectedCategory) ? 'Income' : 'Expense'}`}
+        {isSubmitting ? 'Adding...' : selectedCategory === 'Invoices' ? 'Create Invoice' : `Add ${isIncomeCategory(selectedCategory) ? 'Income' : 'Expense'}`}
       </button>
     </form>
   );

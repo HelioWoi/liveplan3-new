@@ -8,8 +8,8 @@ interface PageHeaderProps {
   onMoreClick?: () => void;
 }
 
-export default function PageHeader({
-  title,
+export default function PageHeader({ 
+  title, 
   showBackButton = true,
   showMoreOptions = false,
   onMoreClick
@@ -17,40 +17,39 @@ export default function PageHeader({
   const navigate = useNavigate();
 
   return (
-    <div className="sticky top-0 z-50 w-full px-4 py-4 shadow-md bg-[#1A0B3E] text-white">
-      <div className="flex items-center justify-between">
-        {/* Back Button Area */}
-        {showBackButton ? (
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full transition-colors duration-200 ease-in-out hover:bg-white/10"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
-
-        {/* Title */}
-        <h1 className="text-xl font-semibold truncate px-2">
-          {title}
-        </h1>
-
-        {/* More Options Button Area */}
-        {showMoreOptions ? (
-          <button
-            onClick={onMoreClick}
-            className="p-2 rounded-full transition-colors duration-200 ease-in-out hover:bg-white/10"
-            aria-label="More options"
-          >
-            <MoreVertical className="h-6 w-6" />
-          </button>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
+    <div className="bg-[#120B39] text-white">
+      <div className="relative">
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#120B39] rounded-b-[40px]"></div>
+        <div className="relative px-4 pt-12 pb-6">
+          <div className="flex items-center justify-between">
+            {showBackButton ? (
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+            ) : (
+              /* Spacer for alignment */
+              <div className="w-10"></div>
+            )}
+            
+            <h1 className="text-2xl font-bold">{title}</h1>
+            
+            {showMoreOptions ? (
+              <button
+                onClick={onMoreClick}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <MoreVertical className="h-6 w-6" />
+              </button>
+            ) : (
+              /* Spacer for alignment */
+              <div className="w-10"></div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

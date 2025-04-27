@@ -5,7 +5,10 @@ export type TransactionCategory =
   | 'Variable'
   | 'Extra'
   | 'Additional'
-  | 'Tax';
+  | 'Tax'
+  | 'Invoices'
+  | 'Contribution'
+  | 'Goal';
 
 export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   'Income',
@@ -14,7 +17,10 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   'Variable',
   'Extra',
   'Additional',
-  'Tax'
+  'Tax',
+  'Invoices',
+  'Contribution',
+  'Goal'
 ];
 
 export type TaxType = 'Withheld' | 'BAS' | 'PAYG' | 'Other';
@@ -31,7 +37,7 @@ export interface Transaction {
 }
 
 export const isIncomeCategory = (category: TransactionCategory): boolean => {
-  return ['Income', 'Investimento'].includes(category);
+  return ['Income', 'Investimento', 'Invoices'].includes(category);
 };
 
 export const getCategoryForFormula = (category: TransactionCategory) => {
@@ -50,6 +56,12 @@ export const getCategoryForFormula = (category: TransactionCategory) => {
       return 'additional';
     case 'Tax':
       return 'tax';
+    case 'Invoices':
+      return 'income';
+    case 'Contribution':
+      return 'investment';
+    case 'Goal':
+      return 'investment';
   }
 };
 
@@ -69,5 +81,11 @@ export const getCategoryColor = (category: TransactionCategory) => {
       return 'bg-error-100 text-error-800';
     case 'Tax':
       return 'bg-gray-100 text-gray-800';
+    case 'Invoices':
+      return 'bg-emerald-100 text-emerald-800';
+    case 'Contribution':
+      return 'bg-indigo-100 text-indigo-800';
+    case 'Goal':
+      return 'bg-purple-100 text-purple-800';
   }
 };

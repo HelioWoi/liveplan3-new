@@ -10,7 +10,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const Goals = lazy(() => import('./pages/Goals'));
-const PassiveIncome = lazy(() => import('./pages/PassiveIncome'));
+const Simulator = lazy(() => import('./pages/PassiveIncome'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
@@ -18,10 +18,14 @@ const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Income = lazy(() => import('./pages/IncomePage'));
 const Expenses = lazy(() => import('./pages/ExpensesPage'));
-const Bills = lazy(() => import('./pages/BillsPage'));
+const Variables = lazy(() => import('./pages/VariablesPage'));
+const Statement = lazy(() => import('./pages/StatementPage'));
 const CategoryReport = lazy(() => import('./pages/CategoryReport'));
 const Tax = lazy(() => import('./pages/TaxPage'));
 const Help = lazy(() => import('./pages/HelpPage'));
+const Invoices = lazy(() => import('./pages/InvoicesPage'));
+const Bills = lazy(() => import('./pages/BillsPage'));
+const Onboarding = lazy(() => import('./pages/onboarding/OnboardingPage'));
 
 function App() {
   const { supabase } = useSupabase();
@@ -89,6 +93,9 @@ function App() {
     <>
       <Suspense fallback={<Loading />}>
         <Routes>
+          {/* Onboarding */}
+          <Route path="/onboarding" element={<Onboarding />} />
+
           {/* Auth routes */}
           <Route 
             path="/login" 
@@ -121,12 +128,18 @@ function App() {
             element={user ? <Goals /> : <Navigate to="/login" state={{ from: location }} replace />} 
           />
           <Route 
-            path="/passive-income" 
-            element={user ? <PassiveIncome /> : <Navigate to="/login" state={{ from: location }} replace />} 
+            path="/simulator" 
+            element={user ? <Simulator /> : <Navigate to="/login" state={{ from: location }} replace />} 
           />
           <Route 
             path="/profile" 
             element={user ? <Profile /> : <Navigate to="/login" state={{ from: location }} replace />} 
+          />
+
+          {/* Bills Page */}
+          <Route 
+            path="/bills" 
+            element={user ? <Bills /> : <Navigate to="/login" state={{ from: location }} replace />} 
           />
 
           {/* Category Reports */}
@@ -147,6 +160,16 @@ function App() {
             element={user ? <Help /> : <Navigate to="/login" state={{ from: location }} replace />} 
           />
 
+          {/* Invoices Pages */}
+          <Route 
+            path="/invoices" 
+            element={user ? <Invoices /> : <Navigate to="/login" state={{ from: location }} replace />} 
+          />
+          <Route 
+            path="/invoices/new" 
+            element={user ? <Invoices /> : <Navigate to="/login" state={{ from: location }} replace />} 
+          />
+
           {/* Other routes */}
           <Route 
             path="/income" 
@@ -157,12 +180,16 @@ function App() {
             element={user ? <Expenses /> : <Navigate to="/login" state={{ from: location }} replace />} 
           />
           <Route 
-            path="/transition" 
-            element={<Navigate to="/transactions" replace />} 
+            path="/variables" 
+            element={user ? <Variables /> : <Navigate to="/login" state={{ from: location }} replace />} 
           />
           <Route 
-            path="/bills" 
-            element={user ? <Bills /> : <Navigate to="/login" state={{ from: location }} replace />} 
+            path="/statement" 
+            element={user ? <Statement /> : <Navigate to="/login" state={{ from: location }} replace />} 
+          />
+          <Route 
+            path="/transition" 
+            element={<Navigate to="/transactions" replace />} 
           />
 
           {/* Catch-all route */}
