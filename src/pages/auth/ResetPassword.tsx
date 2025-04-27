@@ -19,31 +19,37 @@ export default function ResetPassword() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormValues>();
   const password = watch('password');
 
-  // Get access token from URL hash or location state
+  // Get access token from URL hash
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      // Extract access token
-      const accessToken = hash.split('access_token=')[1]?.split('&')[0];
-      if (!accessToken) {
-        setResetError('Invalid reset link. Please request a new password reset.');
-        return;
-      }
+    const setupSession = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        try {
+          // Extract access token
+          const accessToken = hash.split('access_token=')[1]?.split('&')[0];
+          if (!accessToken) {
+            setResetError('Invalid reset link. Please request a new password reset.');
+            return;
+          }
 
-      // Set the access token in session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) {
-          // If no session, set the access token
-          supabase.auth.setSession({
+          // Set up the session with the access token
+          const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: '',
           });
-        }
-      });
 
-      // Clean up URL
-      window.history.replaceState(null, '', window.location.pathname);
-    }
+          if (error) throw error;
+
+          // Clean up URL
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch (error: any) {
+          console.error('Failed to set up session:', error);
+          setResetError('Failed to validate reset link. Please request a new password reset.');
+        }
+      }
+    };
+
+    setupSession();
   }, [supabase.auth]);
 
   const onSubmit = async (data: ResetFormValues) => {
@@ -51,6 +57,13 @@ export default function ResetPassword() {
     setResetError(null);
     
     try {
+      // Get current session to verify we have access
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Invalid or expired reset link. Please request a new password reset.');
+      }
+
+      // Update password
       const { error } = await supabase.auth.updateUser({
         password: data.password
       });
