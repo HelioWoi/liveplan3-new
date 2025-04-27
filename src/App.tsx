@@ -42,7 +42,6 @@ function App() {
         if (error) {
           console.error('Session check error:', error);
           setUser(null);
-          navigate('/login');
           return;
         }
 
@@ -54,7 +53,6 @@ function App() {
       } catch (error) {
         console.error('Session check failed:', error);
         setUser(null);
-        navigate('/login');
       }
     };
 
@@ -65,7 +63,7 @@ function App() {
       async (event, session) => {
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || !session) {
           setUser(null);
-          if (location.pathname !== '/login') {
+          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
             navigate('/login');
           }
           return;
