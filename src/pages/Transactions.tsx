@@ -236,7 +236,7 @@ export default function Transactions() {
           onClose={() => setShowModal(false)}
         />
 
-        <BottomNavigation />
+        <BottomNavigation onAddClick={() => setShowModal(true)} />
       </div>
     </div>
   );
