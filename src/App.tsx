@@ -38,12 +38,18 @@ function App() {
     const handlePasswordReset = async () => {
       const hash = window.location.hash;
       if (hash && hash.includes('type=recovery')) {
-        const accessToken = hash.split('access_token=')[1]?.split('&')[0];
-        if (accessToken) {
-          // Remove the hash to clean up the URL
-          window.location.hash = '';
-          // Navigate to reset password with the token
-          navigate('/reset-password', { state: { accessToken } });
+        try {
+          // Extract access token from hash
+          const accessToken = hash.split('access_token=')[1]?.split('&')[0];
+          if (accessToken) {
+            // Remove the hash to clean up the URL
+            window.history.replaceState(null, '', window.location.pathname);
+            // Navigate to reset password with the token
+            navigate('/reset-password', { state: { accessToken } });
+          }
+        } catch (error) {
+          console.error('Failed to handle password reset:', error);
+          navigate('/login');
         }
       }
     };
@@ -60,7 +66,9 @@ function App() {
         if (error) {
           console.error('Session check error:', error);
           setUser(null);
-          navigate('/login');
+          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+            navigate('/login');
+          }
           return;
         }
 
@@ -75,7 +83,9 @@ function App() {
       } catch (error) {
         console.error('Session check failed:', error);
         setUser(null);
-        navigate('/login');
+        if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password') {
+          navigate('/login');
+        }
       }
     };
 
@@ -89,6 +99,17 @@ function App() {
         if (event === 'SIGNED_OUT') {
           setUser(null);
           navigate('/login');
+          return;
+        }
+
+        if (event === 'PASSWORD_RECOVERY') {
+          // Handle password recovery event
+          const hash = window.location.hash;
+          const accessToken = hash.split('access_token=')[1]?.split('&')[0];
+          if (accessToken) {
+            window.history.replaceState(null, '', window.location.pathname);
+            navigate('/reset-password', { state: { accessToken } });
+          }
           return;
         }
 
