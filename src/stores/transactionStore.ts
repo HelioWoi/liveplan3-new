@@ -26,53 +26,6 @@ interface TransactionState {
   fetchTaxEntries: () => Promise<void>;
 }
 
-// Demo data for development
-const demoTransactions: Transaction[] = [
-  {
-    id: '1',
-    origin: 'Monthly Salary',
-    amount: 3000,
-    category: 'Income',
-    date: formatISO(new Date(2025, 0, 1)),
-    userId: 'demo-user',
-  },
-  {
-    id: '2',
-    origin: 'Apartment Rent',
-    amount: 800,
-    category: 'Fixed',
-    date: formatISO(new Date(2025, 0, 5)),
-    userId: 'demo-user',
-  },
-  {
-    id: '3',
-    origin: 'Groceries',
-    amount: 120,
-    category: 'Variable',
-    date: formatISO(new Date(2025, 0, 10)),
-    userId: 'demo-user',
-  },
-];
-
-const demoTaxEntries: TaxEntry[] = [
-  {
-    id: '1',
-    date: formatISO(new Date(2025, 0, 1)),
-    amount: 500,
-    type: 'Withheld',
-    notes: 'January PAYG',
-    userId: 'demo-user',
-  },
-  {
-    id: '2',
-    date: formatISO(new Date(2025, 0, 15)),
-    amount: 1200,
-    type: 'BAS',
-    notes: 'Q4 2024 BAS Payment',
-    userId: 'demo-user',
-  },
-];
-
 export const useTransactionStore = create<TransactionState>((set) => ({
   transactions: [],
   taxEntries: [],
@@ -85,7 +38,7 @@ export const useTransactionStore = create<TransactionState>((set) => ({
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      set({ transactions: demoTransactions, isLoading: false });
+      set({ transactions: [], isLoading: false });
     } catch (error) {
       set({ error: 'Failed to fetch transactions', isLoading: false });
     }
@@ -152,7 +105,7 @@ export const useTransactionStore = create<TransactionState>((set) => ({
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      set({ taxEntries: demoTaxEntries, isLoading: false });
+      set({ taxEntries: [], isLoading: false });
     } catch (error) {
       set({ error: 'Failed to fetch tax entries', isLoading: false });
     }
