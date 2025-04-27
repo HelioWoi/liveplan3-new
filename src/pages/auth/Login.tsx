@@ -19,6 +19,7 @@ export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>();
   
   const from = (location.state as any)?.from?.pathname || '/';
+  const message = (location.state as any)?.message;
   
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
@@ -60,6 +61,12 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {message && (
+              <div className="p-4 rounded-lg bg-success-50 border border-success-200 animate-slide-down">
+                <p className="text-sm text-success-700">{message}</p>
+              </div>
+            )}
+
             {loginError && (
               <div className="p-4 rounded-lg bg-error-50 border border-error-200 animate-slide-down">
                 <p className="text-sm text-error-700">{loginError}</p>
