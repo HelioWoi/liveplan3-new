@@ -80,10 +80,10 @@ export default function ResetPassword() {
               {isResettingPassword ? 'Set New Password' : 'Reset Password'}
             </h1>
             <p className="text-gray-600">
-              {isResettingPassword 
+              {(isResettingPassword 
                 ? 'Create a new password for your account'
-                : 'We'll send you instructions to reset your password'
-              }
+                : "We'll send you instructions to reset your password"
+              )}
             </p>
           </div>
 
@@ -98,7 +98,7 @@ export default function ResetPassword() {
               <p className="text-gray-600 mb-6">
                 {isResettingPassword
                   ? 'Your password has been changed successfully.'
-                  : 'We've sent you an email with a link to reset your password. Please check your inbox.'
+                  : "We've sent you an email with a link to reset your password. Please check your inbox."
                 }
               </p>
               <Link
