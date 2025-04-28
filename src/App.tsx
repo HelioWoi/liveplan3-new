@@ -34,18 +34,18 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // List of public routes that don't require authentication
+  const publicRoutes = ['/login', '/register', '/reset-password', '/request-password-reset'];
+
   useEffect(() => {
     // Handle password reset from email link
     const handlePasswordReset = async () => {
       const hash = window.location.hash;
       if (hash && hash.includes('type=recovery')) {
         try {
-          // Extract access token from hash
           const accessToken = hash.split('access_token=')[1]?.split('&')[0];
           if (accessToken) {
-            // Remove the hash to clean up the URL
             window.history.replaceState(null, '', window.location.pathname);
-            // Navigate to reset password with the token
             navigate('/reset-password', { state: { accessToken } });
           }
         } catch (error) {
@@ -67,7 +67,7 @@ function App() {
         if (error) {
           console.error('Session check error:', error);
           setUser(null);
-          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
+          if (!publicRoutes.includes(location.pathname)) {
             navigate('/login');
           }
           return;
@@ -82,23 +82,36 @@ function App() {
             .from('user_profiles')
             .select('onboarding_completed')
             .eq('user_id', currentUser.id)
-            .single();
+            .maybeSingle();
 
           // If user is new or hasn't completed onboarding, redirect to onboarding
-          if (!profile?.onboarding_completed && location.pathname !== '/onboarding') {
-            navigate('/onboarding');
-            return;
+          if (!profile || !profile.onboarding_completed) {
+            // If no profile exists, create one
+            if (!profile) {
+              const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+              
+              if (insertError) {
+                console.error('Failed to create user profile:', insertError);
+              }
+            }
+
+            if (location.pathname !== '/onboarding') {
+              navigate('/onboarding');
+              return;
+            }
           }
         } else {
           setUser(null);
-          if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
+          if (!publicRoutes.includes(location.pathname)) {
             navigate('/login');
           }
         }
       } catch (error) {
         console.error('Session check failed:', error);
         setUser(null);
-        if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
+        if (!publicRoutes.includes(location.pathname)) {
           navigate('/login');
         }
       }
@@ -118,7 +131,6 @@ function App() {
         }
 
         if (event === 'PASSWORD_RECOVERY') {
-          // Handle password recovery event
           const hash = window.location.hash;
           const accessToken = hash.split('access_token=')[1]?.split('&')[0];
           if (accessToken) {
@@ -129,7 +141,6 @@ function App() {
         }
 
         if (event === 'TOKEN_REFRESHED') {
-          // Re-check session when token is refreshed
           const { data: { session: newSession }, error } = await supabase.auth.getSession();
           if (error || !newSession) {
             console.error('Token refresh failed:', error);
@@ -150,14 +161,27 @@ function App() {
             .from('user_profiles')
             .select('onboarding_completed')
             .eq('user_id', currentUser.id)
-            .single();
+            .maybeSingle();
 
           // If user is new or hasn't completed onboarding, redirect to onboarding
-          if (!profile?.onboarding_completed && location.pathname !== '/onboarding') {
-            navigate('/onboarding');
-            return;
+          if (!profile || !profile.onboarding_completed) {
+            // If no profile exists, create one
+            if (!profile) {
+              const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+              
+              if (insertError) {
+                console.error('Failed to create user profile:', insertError);
+              }
+            }
+
+            if (location.pathname !== '/onboarding') {
+              navigate('/onboarding');
+              return;
+            }
           }
-        } else if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset-password' && location.pathname !== '/request-password-reset') {
+        } else if (!publicRoutes.includes(location.pathname)) {
           setUser(null);
           navigate('/login');
         }
