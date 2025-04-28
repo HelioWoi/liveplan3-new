@@ -4,10 +4,13 @@ import * as XLSX from 'xlsx';
 
 interface SpreadsheetRow {
   Date: string;
+  Month?: string;
+  Week?: string;
   Type: string;
   Category: string;
   Description: string;
   Amount: string | number;
+  Frequency?: string;
 }
 
 export const validateSpreadsheetFormat = async (file: File): Promise<boolean> => {
@@ -37,7 +40,7 @@ export const validateSpreadsheetFormat = async (file: File): Promise<boolean> =>
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const headers = Object.keys(worksheet)
-        .filter(key => key.match(/^[A-Z]1$/)) // Get only first row
+        .filter(key => key.match(/^[A-Z]1$/))
         .map(key => worksheet[key].v);
 
       const requiredHeaders = ['Date', 'Type', 'Category', 'Description', 'Amount'];
@@ -93,13 +96,17 @@ const processRows = (rows: SpreadsheetRow[]): Partial<Transaction>[] => {
         throw new Error(`Invalid date format in row: ${JSON.stringify(row)}`);
       }
 
-      // Parse amount
+      // Parse amount and validate it's positive
       const amount = typeof row.Amount === 'string' ? 
         parseFloat(row.Amount.replace(/[^0-9.-]+/g, '')) : 
         row.Amount;
 
       if (isNaN(amount)) {
         throw new Error(`Invalid amount format in row: ${JSON.stringify(row)}`);
+      }
+
+      if (amount <= 0) {
+        throw new Error(`Amount must be positive in row: ${JSON.stringify(row)}`);
       }
 
       // Map spreadsheet categories to app categories
@@ -125,7 +132,9 @@ const mapCategory = (category: string): string => {
     'Gift': 'Extra',
     'Bonus': 'Additional',
     'Income Tax': 'Tax',
-    // Add more mappings as needed
+    'Bank': 'Fixed',
+    'Savings': 'Fixed',
+    'Investment': 'Investimento',
   };
 
   return categoryMap[category] || category;
@@ -137,14 +146,14 @@ const determineType = (type: string): 'income' | 'expense' => {
 };
 
 export const generateTemplateFile = (): string => {
-  const headers = ['Date', 'Type', 'Category', 'Description', 'Amount'];
+  const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Month', 'Week', 'Frequency'];
   const sampleData = [
-    ['2025-01-01', 'Income', 'Salary', 'Monthly salary', '5000'],
-    ['2025-01-03', 'Fixed Expense', 'Rent', 'Apartment rent', '1500'],
-    ['2025-01-05', 'Variable Expense', 'Groceries', 'Supermarket', '300'],
-    ['2025-01-08', 'Extra', 'Gift', 'Birthday gift', '400'],
-    ['2025-01-10', 'Additional', 'Bonus', 'Year-end bonus', '2000'],
-    ['2025-01-15', 'Tax', 'Income Tax', 'Government tax', '800']
+    ['2025-08-05', 'Income', 'Salary', 'Monthly salary', '5000', 'August', 'Week 1', 'Monthly'],
+    ['2025-08-10', 'Fixed Expense', 'Rent', 'Apartment rent', '1500', 'August', 'Week 2', 'Monthly'],
+    ['2025-08-15', 'Variable Expense', 'Groceries', 'Supermarket', '300', 'August', 'Week 3', 'Weekly'],
+    ['2025-08-20', 'Extra', 'Gift', 'Birthday gift', '400', 'August', 'Week 3', ''],
+    ['2025-08-25', 'Investment', 'Bank', 'Stock investment', '2000', 'August', 'Week 4', 'Monthly'],
+    ['2025-08-30', 'Savings', 'Bank', 'Save for holidays', '500', 'August', 'Week 4', 'Weekly']
   ];
 
   const csv = [
