@@ -49,15 +49,35 @@ export default function TransactionForm({
     }
   };
   
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCategory = e.target.value as TransactionCategory;
+    
+    // Redirect to appropriate page based on category
+    if (newCategory === 'Invoices') {
+      navigate('/invoices');
+      return;
+    }
+    
+    if (newCategory === 'Goal') {
+      navigate('/goals');
+      return;
+    }
+  };
+
   const onSubmit = async (data: FormValues) => {
     if (!user || !amountValue) return;
     
     setIsSubmitting(true);
     
     try {
-      // If category is Invoices, redirect to invoices page
+      // Handle special categories
       if (data.category === 'Invoices') {
         navigate('/invoices');
+        return;
+      }
+
+      if (data.category === 'Goal') {
+        navigate('/goals');
         return;
       }
 
@@ -105,6 +125,7 @@ export default function TransactionForm({
               : "border-gray-200 focus:border-[#120B39] focus:ring-[#120B39]"
           )}
           {...register('category', { required: 'Category is required' })}
+          onChange={handleCategoryChange}
           disabled={disableCategory}
         >
           {TRANSACTION_CATEGORIES.map(category => (
