@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Upload, X, Check, AlertCircle } from 'lucide-react';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { validateSpreadsheetFormat, parseSpreadsheet, generateTemplateFile } from '../../utils/spreadsheetParser';
 import SmartSpreadsheetConverter from './SmartSpreadsheetConverter';
-import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../lib/supabase/SupabaseProvider';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -71,12 +71,12 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
 
       if (error) throw error;
       
-      // Redirect to home page
-      navigate('/');
+      // Navigate to home page after successful import
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('Failed to update onboarding status:', err);
-      // Still redirect to home even if update fails
-      navigate('/');
+      // Still navigate to home even if update fails
+      navigate('/', { replace: true });
     }
   };
 
