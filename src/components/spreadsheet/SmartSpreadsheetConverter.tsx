@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, AlertCircle, Eye, RefreshCw } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { formatCurrency } from '../../utils/formatters';
@@ -10,6 +10,9 @@ interface ColumnMapping {
   category: string;
   amount: string;
   description: string;
+  month?: string;
+  week?: string;
+  frequency?: string;
 }
 
 interface PreviewData {
@@ -30,6 +33,9 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
     category: '',
     amount: '',
     description: '',
+    month: '',
+    week: '',
+    frequency: '',
   });
   const [mappedData, setMappedData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +85,9 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
       category: headers.find(h => /category|categoria|type|tipo/i.test(h)) || '',
       amount: headers.find(h => /amount|valor|price|preço/i.test(h)) || '',
       description: headers.find(h => /description|descrição|name|nome/i.test(h)) || '',
+      month: headers.find(h => /month|mês/i.test(h)) || '',
+      week: headers.find(h => /week|semana/i.test(h)) || '',
+      frequency: headers.find(h => /frequency|frequência/i.test(h)) || '',
     };
     setMapping(autoMapping);
   };
@@ -88,7 +97,7 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
   };
 
   const validateMapping = (): boolean => {
-    return Object.values(mapping).every(value => value !== '');
+    return ['date', 'category', 'amount', 'description'].every(field => mapping[field as keyof ColumnMapping] !== '');
   };
 
   const processData = async () => {
@@ -143,12 +152,19 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
         throw new Error(`Invalid amount: ${row[mapping.amount]}`);
       }
 
+      if (amount <= 0) {
+        throw new Error(`Amount must be positive: ${row[mapping.amount]}`);
+      }
+
       const description = row[mapping.description];
       if (!description) {
         throw new Error('Description is required');
       }
 
       const category = mapCategory(row[mapping.category]);
+      const month = mapping.month ? row[mapping.month] : '';
+      const week = mapping.week ? row[mapping.week] : '';
+      const frequency = mapping.frequency ? row[mapping.frequency] : '';
 
       return {
         date: date.toISOString(),
@@ -156,17 +172,16 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
         amount,
         description,
         type: determineType(category),
+        month,
+        week,
+        frequency,
       };
     });
   };
 
-  const normalizeString = (value: string): string => {
-    return value.toLowerCase().trim();
-  };
-
-  const mapCategory = (value: string): string => {
-    const normalized = normalizeString(value);
-    const categoryMap: Record<string, string> = {
+  const mapCategory = (value: string): TransactionCategory => {
+    const normalized = value.toLowerCase().trim();
+    const categoryMap: Record<string, TransactionCategory> = {
       'salary': 'Income',
       'wage': 'Income',
       'investment': 'Investimento',
@@ -185,10 +200,6 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
     return ['Income', 'Investimento'].includes(category) ? 'income' : 'expense';
   };
 
-  const handleConfirm = () => {
-    onSuccess(mappedData);
-  };
-
   return (
     <div className="bg-white rounded-xl p-4 w-full max-w-4xl mx-auto max-h-[90vh] overflow-y-auto">
       <h2 className="text-xl font-bold mb-4 text-gray-900">Map Your Spreadsheet Columns</h2>
@@ -200,7 +211,7 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
             {Object.entries(mapping).map(([field, value]) => (
               <div key={field} className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700 capitalize">
-                  {field} Column
+                  {field} Column {field === 'date' || field === 'category' || field === 'amount' || field === 'description' ? '(Required)' : '(Optional)'}
                 </label>
                 <select
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors text-sm"
@@ -260,17 +271,7 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
               disabled={!validateMapping() || isProcessing}
               className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
             >
-              {isProcessing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Preview Result
-                </>
-              )}
+              Preview Result
             </button>
             <button
               onClick={onClose}
@@ -299,6 +300,9 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Description</th>
                         <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 border-b">Amount</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Type</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Month</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Week</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Frequency</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -321,6 +325,9 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
                               {row.type}
                             </span>
                           </td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.month}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.week}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.frequency}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -332,10 +339,9 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
 
           <div className="flex flex-col sm:flex-row gap-2">
             <button
-              onClick={handleConfirm}
+              onClick={() => onSuccess(mappedData)}
               className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center text-sm"
             >
-              <Check className="h-4 w-4 mr-2" />
               Confirm Import
             </button>
             <button
