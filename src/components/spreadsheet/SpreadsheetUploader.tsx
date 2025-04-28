@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Download, Upload, X, Check, AlertCircle } from 'lucide-react';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { validateSpreadsheetFormat, parseSpreadsheet, generateTemplateFile } from '../../utils/spreadsheetParser';
+import SmartSpreadsheetConverter from './SmartSpreadsheetConverter';
 
 interface SpreadsheetUploaderProps {
   onClose: () => void;
@@ -14,6 +15,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -29,54 +31,14 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) {
-      await processFile(file);
+      setSelectedFile(file);
     }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await processFile(file);
-    }
-  };
-
-  const processFile = async (file: File) => {
-    setError(null);
-    setSuccess(false);
-    setIsProcessing(true);
-
-    try {
-      // Validate file format
-      const isValid = await validateSpreadsheetFormat(file);
-      if (!isValid) {
-        throw new Error('Invalid spreadsheet format. Please use the template provided.');
-      }
-
-      // Parse transactions
-      const transactions = await parseSpreadsheet(file);
-
-      // Add transactions to store
-      for (const transaction of transactions) {
-        if (transaction.date && transaction.amount && transaction.category && transaction.type) {
-          await addTransaction({
-            date: transaction.date,
-            amount: transaction.amount,
-            category: transaction.category as any,
-            type: transaction.type,
-            origin: transaction.origin || '',
-            userId: 'current-user'
-          });
-        }
-      }
-
-      setSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process file');
-    } finally {
-      setIsProcessing(false);
+      setSelectedFile(file);
     }
   };
 
@@ -92,9 +54,37 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
     document.body.removeChild(link);
   };
 
+  const handleMappedData = async (mappedData: any[]) => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Add transactions to store
+      for (const transaction of mappedData) {
+        await addTransaction({
+          date: transaction.date,
+          amount: transaction.amount,
+          category: transaction.category,
+          type: transaction.type,
+          origin: transaction.description,
+          userId: 'current-user'
+        });
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to import transactions');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-6 max-w-lg w-full animate-slide-up">
+      <div className="bg-white rounded-xl p-6 max-w-4xl w-full animate-slide-up">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">Import Transactions</h2>
           <button
@@ -105,7 +95,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
           </button>
         </div>
 
-        {!success && (
+        {!selectedFile && !success && (
           <>
             <div className="mb-6">
               <button
@@ -116,7 +106,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
                 Download Template
               </button>
               <p className="text-sm text-gray-500 mt-2">
-                Download our template first to ensure your data is formatted correctly
+                You can download our template or use your own spreadsheet format
               </p>
             </div>
 
@@ -151,14 +141,15 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
                 Select File
               </button>
             </div>
-
-            {error && (
-              <div className="bg-error-50 text-error-700 p-4 rounded-lg flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <p>{error}</p>
-              </div>
-            )}
           </>
+        )}
+
+        {selectedFile && !success && (
+          <SmartSpreadsheetConverter
+            file={selectedFile}
+            onClose={() => setSelectedFile(null)}
+            onSuccess={handleMappedData}
+          />
         )}
 
         {success && (
@@ -172,6 +163,13 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
             <p className="text-gray-600">
               Your transactions have been imported successfully
             </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-error-50 text-error-700 p-4 rounded-lg flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <p>{error}</p>
           </div>
         )}
       </div>
