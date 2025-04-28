@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Upload, X, Check, AlertCircle } from 'lucide-react';
 import { useTransactionStore } from '../../stores/transactionStore';
@@ -60,7 +60,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
     document.body.removeChild(link);
   };
 
-  const completeOnboarding = async () => {
+  const completeOnboarding = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -78,7 +78,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
       // Still navigate to home even if update fails
       navigate('/', { replace: true });
     }
-  };
+  }, [user, supabase, navigate]);
 
   const handleMappedData = async (mappedData: any[]) => {
     setIsProcessing(true);
@@ -102,11 +102,10 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
       // Complete onboarding and redirect after a short delay
       setTimeout(() => {
         completeOnboarding();
-      }, 1000);
+      }, 500);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import transactions');
-    } finally {
       setIsProcessing(false);
     }
   };
