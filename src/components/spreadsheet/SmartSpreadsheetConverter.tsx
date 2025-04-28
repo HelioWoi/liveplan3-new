@@ -160,9 +160,8 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
     });
   };
 
-  const mapCategory = (value: string): TransactionCategory => {
-    const normalized = value.toLowerCase().trim();
-    const categoryMap: Record<string, TransactionCategory> = {
+  const mapCategory = (value: string): string => {
+    const categoryMap: Record<string, string> = {
       'salary': 'Income',
       'wage': 'Income',
       'investment': 'Investimento',
@@ -186,20 +185,20 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
   };
 
   return (
-    <div className="bg-white rounded-xl p-6 w-full max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">Map Your Spreadsheet Columns</h2>
+    <div className="bg-white rounded-xl p-4 w-full max-w-4xl mx-auto max-h-[90vh] overflow-y-auto">
+      <h2 className="text-xl font-bold mb-4 text-gray-900">Map Your Spreadsheet Columns</h2>
 
       {!showPreview ? (
-        <div className="space-y-8">
+        <div className="space-y-4">
           {/* Column Mapping */}
-          <div className="grid gap-6">
+          <div className="grid gap-3">
             {Object.entries(mapping).map(([field, value]) => (
-              <div key={field} className="space-y-2">
+              <div key={field} className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700 capitalize">
                   {field} Column
                 </label>
                 <select
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors text-sm"
                   value={value}
                   onChange={(e) => handleMappingChange(field as keyof ColumnMapping, e.target.value)}
                 >
@@ -213,15 +212,15 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
           </div>
 
           {/* Preview Table */}
-          <div className="bg-gray-50 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Data Preview</h3>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Data Preview</h3>
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-              <div className="max-h-[300px] overflow-y-auto">
-                <table className="w-full">
+              <div className="max-h-[200px] overflow-y-auto">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
                       {headers.map(header => (
-                        <th key={header} className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">
+                        <th key={header} className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">
                           {header}
                         </th>
                       ))}
@@ -231,7 +230,7 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
                     {previewData.slice(0, 5).map((row, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         {headers.map(header => (
-                          <td key={header} className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                          <td key={header} className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
                             {row[header]}
                           </td>
                         ))}
@@ -244,72 +243,72 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
           </div>
 
           {error && (
-            <div className="bg-error-50 text-error-700 p-4 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div className="bg-error-50 text-error-700 p-3 rounded-lg flex items-start gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <p>{error}</p>
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={processData}
               disabled={!validateMapping() || isProcessing}
-              className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
             >
               {isProcessing ? (
                 <>
-                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <Eye className="h-5 w-5 mr-2" />
+                  <Eye className="h-4 w-4 mr-2" />
                   Preview Result
                 </>
               )}
             </button>
             <button
               onClick={onClose}
-              className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 text-sm"
             >
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Preview Mapped Data</h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Preview Mapped Data</h3>
+            <p className="text-xs text-gray-600 mb-3">
               Review how your data will be imported into LivePlan³
             </p>
 
-            <div className="bg-gray-50 rounded-xl p-6 shadow-sm">
+            <div className="bg-gray-50 rounded-lg p-3">
               <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <div className="max-h-[300px] overflow-y-auto">
-                  <table className="w-full">
+                <div className="max-h-[250px] overflow-y-auto">
+                  <table className="w-full text-sm">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Date</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Category</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Description</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Amount</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Type</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Date</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Category</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Description</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 border-b">Amount</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Type</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {mappedData.slice(0, 5).map((row, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-3 py-2 text-xs text-gray-600">
                             {new Date(row.date).toLocaleDateString()}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{row.category}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{row.description}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.category}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.description}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600 text-right">
                             {formatCurrency(row.amount)}
                           </td>
-                          <td className="px-4 py-3 text-sm">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          <td className="px-3 py-2 text-xs">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               row.type === 'income' 
                                 ? 'bg-success-100 text-success-800' 
                                 : 'bg-error-100 text-error-800'
@@ -326,17 +325,17 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleConfirm}
-              className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center text-sm"
             >
-              <Check className="h-5 w-5 mr-2" />
+              <Check className="h-4 w-4 mr-2" />
               Confirm Import
             </button>
             <button
               onClick={() => setShowPreview(false)}
-              className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 text-sm"
             >
               Edit Mapping
             </button>
