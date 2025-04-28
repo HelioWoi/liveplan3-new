@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DollarSign, Target, PiggyBank, Upload, FileSpreadsheet, Check, AlertCircle } from 'lucide-react';
 import classNames from 'classnames';
+import SpreadsheetUploader from '../../components/spreadsheet/SpreadsheetUploader';
+import { useSupabase } from '../../lib/supabase/SupabaseProvider';
+import { useAuthStore } from '../../stores/authStore';
 
 const ONBOARDING_STEPS = [
   {
@@ -26,7 +29,7 @@ const ONBOARDING_STEPS = [
     iconColor: 'text-warning-600'
   },
   {
-    title: 'Prepare Your Plan',
+    title: 'Import Your Data',
     subtitle: 'Upload your financial spreadsheet to get started with your existing data, or skip this step to start fresh.',
     icon: FileSpreadsheet,
     color: 'bg-accent-100',
@@ -36,112 +39,62 @@ const ONBOARDING_STEPS = [
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const { supabase } = useSupabase();
+  const { user } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [dragActive, setDragActive] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      navigate('/login');
+      // Mark onboarding as completed
+      if (user) {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ onboarding_completed: true })
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Failed to update onboarding status:', error);
+        }
+      }
+      navigate('/');
     }
   };
 
-  const handleSkip = () => {
-    navigate('/login');
-  };
+  const handleSkip = async () => {
+    // Mark onboarding as completed
+    if (user) {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ onboarding_completed: true })
+        .eq('user_id', user.id);
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    const files = e.dataTransfer.files;
-    handleFiles(files);
-  };
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      handleFiles(files);
-    }
-  };
-
-  const handleFiles = (files: FileList) => {
-    const file = files[0];
-    if (file) {
-      const fileType = file.name.split('.').pop()?.toLowerCase();
-      if (fileType === 'xlsx' || fileType === 'csv') {
-        setSelectedFile(file);
-        simulateUpload();
-      } else {
-        setUploadStatus('error');
+      if (error) {
+        console.error('Failed to update onboarding status:', error);
       }
     }
+    navigate('/');
   };
 
-  const simulateUpload = () => {
-    setUploadStatus('uploading');
-    setTimeout(() => {
-      setUploadStatus('success');
-    }, 2000);
+  const handleUploadSuccess = async () => {
+    setShowUploader(false);
+    // Mark onboarding as completed
+    if (user) {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ onboarding_completed: true })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Failed to update onboarding status:', error);
+      }
+    }
+    navigate('/');
   };
 
   const currentStepData = ONBOARDING_STEPS[currentStep];
-
-  const renderUploadContent = () => {
-    if (uploadStatus === 'success') {
-      return (
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto">
-            <Check className="h-8 w-8 text-success-600" />
-          </div>
-          <div>
-            <p className="font-medium text-success-700">File uploaded successfully!</p>
-            <p className="text-sm text-gray-500 mt-1">{selectedFile?.name}</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (uploadStatus === 'error') {
-      return (
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto">
-            <AlertCircle className="h-8 w-8 text-error-600" />
-          </div>
-          <div>
-            <p className="font-medium text-error-700">Invalid file format</p>
-            <p className="text-sm text-gray-500 mt-1">Please upload an .xlsx or .csv file</p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="text-center space-y-4">
-        <Upload className="h-12 w-12 text-gray-400 mx-auto" />
-        <div>
-          <p className="font-medium text-gray-700">
-            {dragActive ? 'Drop your file here' : 'Drag and drop your file here'}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">or click to browse</p>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -184,45 +137,26 @@ export default function OnboardingPage() {
             </p>
           </div>
 
-          {/* File Upload Area (only on last step) */}
+          {/* Import Data Step */}
           {currentStep === 3 && (
-            <div 
-              className={classNames(
-                'border-2 border-dashed rounded-xl p-8 transition-colors',
-                dragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400',
-                uploadStatus === 'success' ? 'border-success-500 bg-success-50' : '',
-                uploadStatus === 'error' ? 'border-error-500 bg-error-50' : ''
-              )}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <label className="cursor-pointer block">
-                <input
-                  type="file"
-                  accept=".xlsx,.csv"
-                  className="hidden"
-                  onChange={handleFileInput}
-                  disabled={uploadStatus === 'uploading' || uploadStatus === 'success'}
-                />
-                {renderUploadContent()}
-              </label>
-            </div>
-          )}
+            <div className="space-y-4">
+              <button
+                onClick={() => setShowUploader(true)}
+                className="w-full bg-primary-600 text-white rounded-xl py-4 font-semibold text-lg transition-colors hover:bg-primary-700"
+              >
+                Import Data
+              </button>
 
-          {currentStep === 3 && (
-            <div className="bg-gray-50 rounded-lg p-4 text-left">
-              <p className="text-sm text-gray-600 font-medium mb-2">Your file should include:</p>
-              <ul className="text-sm text-gray-500 space-y-1 list-disc list-inside">
-                <li>Income</li>
-                <li>Fixed Expenses</li>
-                <li>Variable Expenses</li>
-                <li>Investments</li>
-                <li>Extras</li>
-                <li>Additional</li>
-                <li>Tax</li>
-              </ul>
+              <div className="bg-gray-50 rounded-lg p-4 text-left">
+                <p className="text-sm text-gray-600 font-medium mb-2">Your spreadsheet should include:</p>
+                <ul className="text-sm text-gray-500 space-y-1 list-disc list-inside">
+                  <li>Date (YYYY-MM-DD format)</li>
+                  <li>Type (Income/Expense)</li>
+                  <li>Category (e.g., Salary, Rent, Groceries)</li>
+                  <li>Description</li>
+                  <li>Amount (numeric value)</li>
+                </ul>
+              </div>
             </div>
           )}
 
@@ -241,7 +175,7 @@ export default function OnboardingPage() {
           onClick={handleNext}
           className="w-full bg-black text-white rounded-full py-4 font-semibold text-lg transition-colors hover:bg-gray-900"
         >
-          {currentStep === ONBOARDING_STEPS.length - 1 ? 'Start Now' : 'Next Step'}
+          {currentStep === ONBOARDING_STEPS.length - 1 ? 'Start Fresh' : 'Next Step'}
         </button>
         <button
           onClick={handleSkip}
@@ -250,6 +184,11 @@ export default function OnboardingPage() {
           Skip This Step
         </button>
       </div>
+
+      {/* Spreadsheet Uploader Modal */}
+      {showUploader && (
+        <SpreadsheetUploader onClose={() => setShowUploader(false)} />
+      )}
     </div>
   );
 }
