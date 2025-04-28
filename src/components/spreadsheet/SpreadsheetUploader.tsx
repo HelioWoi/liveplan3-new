@@ -3,12 +3,18 @@ import { Download, Upload, X, Check, AlertCircle } from 'lucide-react';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { validateSpreadsheetFormat, parseSpreadsheet, generateTemplateFile } from '../../utils/spreadsheetParser';
 import SmartSpreadsheetConverter from './SmartSpreadsheetConverter';
+import { useNavigate } from 'react-router-dom';
+import { useSupabase } from '../../lib/supabase/SupabaseProvider';
+import { useAuthStore } from '../../stores/authStore';
 
 interface SpreadsheetUploaderProps {
   onClose: () => void;
 }
 
 export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProps) {
+  const navigate = useNavigate();
+  const { supabase } = useSupabase();
+  const { user } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addTransaction } = useTransactionStore();
   const [isDragging, setIsDragging] = useState(false);
@@ -54,6 +60,26 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
     document.body.removeChild(link);
   };
 
+  const completeOnboarding = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ onboarding_completed: true })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // Redirect to home page
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to update onboarding status:', err);
+      // Still redirect to home even if update fails
+      navigate('/');
+    }
+  };
+
   const handleMappedData = async (mappedData: any[]) => {
     setIsProcessing(true);
     setError(null);
@@ -67,14 +93,17 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
           category: transaction.category,
           type: transaction.type,
           origin: transaction.description,
-          userId: 'current-user'
+          userId: user?.id || 'current-user'
         });
       }
 
       setSuccess(true);
+      
+      // Complete onboarding and redirect after a short delay
       setTimeout(() => {
-        onClose();
-      }, 2000);
+        completeOnboarding();
+      }, 1500);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import transactions');
     } finally {
@@ -161,7 +190,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
               Import Successful!
             </h3>
             <p className="text-gray-600">
-              Your transactions have been imported successfully
+              Your transactions have been imported successfully. Redirecting...
             </p>
           </div>
         )}
