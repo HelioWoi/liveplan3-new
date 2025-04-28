@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Check, AlertCircle, Eye, RefreshCw } from 'lucide-react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { formatCurrency } from '../../utils/formatters';
 import { TransactionCategory, TRANSACTION_CATEGORIES } from '../../types/transaction';
 
@@ -39,28 +40,62 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
     parseFile();
   }, [file]);
 
-  const parseFile = () => {
-    Papa.parse(file, {
-      header: true,
-      preview: 10, // Preview first 10 rows
-      complete: (results) => {
-        const headers = results.meta.fields || [];
+  const parseFile = async () => {
+    try {
+      if (file.name.endsWith('.csv')) {
+        Papa.parse(file, {
+          header: true,
+          preview: 10, // Preview first 10 rows
+          complete: (results) => {
+            const headers = results.meta.fields || [];
+            setHeaders(headers);
+            setPreviewData(results.data as PreviewData[]);
+            setAutoMapping(headers);
+          },
+          error: (error) => {
+            setError(`Failed to parse CSV file: ${error.message}`);
+          }
+        });
+      } else if (file.name.match(/\.xlsx?$/)) {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        
+        // Get headers from first row
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+        const headers: string[] = [];
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: col })];
+          headers.push(cell?.v || `Column ${col + 1}`);
+        }
+        
+        // Get preview data (first 10 rows)
+        const rows = XLSX.utils.sheet_to_json<PreviewData>(worksheet, { 
+          header: headers,
+          range: 1, // Skip header row
+          defval: '' // Default value for empty cells
+        });
+        
         setHeaders(headers);
-        setPreviewData(results.data as PreviewData[]);
-
-        // Try to auto-map columns based on common names
-        const autoMapping: ColumnMapping = {
-          date: headers.find(h => /date|data/i.test(h)) || '',
-          category: headers.find(h => /category|categoria|type|tipo/i.test(h)) || '',
-          amount: headers.find(h => /amount|valor|price|preço/i.test(h)) || '',
-          description: headers.find(h => /description|descrição|name|nome/i.test(h)) || '',
-        };
-        setMapping(autoMapping);
-      },
-      error: (error) => {
-        setError(`Failed to parse file: ${error.message}`);
+        setPreviewData(rows.slice(0, 10));
+        setAutoMapping(headers);
+      } else {
+        setError('Unsupported file format. Please use CSV or Excel files.');
       }
-    });
+    } catch (error) {
+      setError(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const setAutoMapping = (headers: string[]) => {
+    // Try to auto-map columns based on common names
+    const autoMapping: ColumnMapping = {
+      date: headers.find(h => /date|data/i.test(h)) || '',
+      category: headers.find(h => /category|categoria|type|tipo/i.test(h)) || '',
+      amount: headers.find(h => /amount|valor|price|preço/i.test(h)) || '',
+      description: headers.find(h => /description|descrição|name|nome/i.test(h)) || '',
+    };
+    setMapping(autoMapping);
   };
 
   const handleMappingChange = (field: keyof ColumnMapping, value: string) => {
@@ -76,42 +111,55 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
     setError(null);
 
     try {
-      Papa.parse(file, {
-        header: true,
-        complete: (results) => {
-          const processed = results.data.map((row: any) => {
-            // Get values using the mapping
-            const date = new Date(row[mapping.date]);
-            const category = mapCategory(row[mapping.category]);
-            const amount = parseFloat(String(row[mapping.amount]).replace(/[^0-9.-]+/g, ''));
-            const description = row[mapping.description];
-
-            // Validate values
-            if (isNaN(date.getTime())) throw new Error(`Invalid date: ${row[mapping.date]}`);
-            if (isNaN(amount)) throw new Error(`Invalid amount: ${row[mapping.amount]}`);
-            if (!description) throw new Error('Description is required');
-
-            return {
-              date: date.toISOString(),
-              category,
-              amount,
-              description,
-              type: determineType(category),
-            };
-          });
-
-          setMappedData(processed);
-          setShowPreview(true);
-        },
-        error: (error) => {
-          throw new Error(`Failed to process file: ${error.message}`);
-        }
-      });
+      if (file.name.endsWith('.csv')) {
+        Papa.parse(file, {
+          header: true,
+          complete: (results) => {
+            const processed = processRows(results.data as PreviewData[]);
+            setMappedData(processed);
+            setShowPreview(true);
+          },
+          error: (error) => {
+            throw new Error(`Failed to process CSV file: ${error.message}`);
+          }
+        });
+      } else if (file.name.match(/\.xlsx?$/)) {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<PreviewData>(worksheet);
+        const processed = processRows(rows);
+        setMappedData(processed);
+        setShowPreview(true);
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to process data');
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const processRows = (rows: PreviewData[]) => {
+    return rows.map(row => {
+      // Get values using the mapping
+      const date = new Date(row[mapping.date]);
+      const category = mapCategory(row[mapping.category]);
+      const amount = parseFloat(String(row[mapping.amount]).replace(/[^0-9.-]+/g, ''));
+      const description = row[mapping.description];
+
+      // Validate values
+      if (isNaN(date.getTime())) throw new Error(`Invalid date: ${row[mapping.date]}`);
+      if (isNaN(amount)) throw new Error(`Invalid amount: ${row[mapping.amount]}`);
+      if (!description) throw new Error('Description is required');
+
+      return {
+        date: date.toISOString(),
+        category,
+        amount,
+        description,
+        type: determineType(category),
+      };
+    });
   };
 
   const mapCategory = (value: string): TransactionCategory => {
