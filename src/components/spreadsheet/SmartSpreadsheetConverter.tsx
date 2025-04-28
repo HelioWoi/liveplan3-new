@@ -160,7 +160,12 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
     });
   };
 
+  const normalizeString = (value: string): string => {
+    return value.toLowerCase().trim();
+  };
+
   const mapCategory = (value: string): string => {
+    const normalized = normalizeString(value);
     const categoryMap: Record<string, string> = {
       'salary': 'Income',
       'wage': 'Income',
