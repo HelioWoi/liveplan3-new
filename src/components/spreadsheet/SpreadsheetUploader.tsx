@@ -102,7 +102,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
       // Complete onboarding and redirect after a short delay
       setTimeout(() => {
         completeOnboarding();
-      }, 1500);
+      }, 1000);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import transactions');
