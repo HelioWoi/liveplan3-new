@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, Target, PiggyBank, Upload, FileSpreadsheet, Check, AlertCircle } from 'lucide-react';
+import { DollarSign, Target, PiggyBank, FileSpreadsheet } from 'lucide-react';
 import classNames from 'classnames';
 import SpreadsheetUploader from '../../components/spreadsheet/SpreadsheetUploader';
 import { useSupabase } from '../../lib/supabase/SupabaseProvider';
@@ -78,20 +78,9 @@ export default function OnboardingPage() {
     navigate('/');
   };
 
-  const handleUploadSuccess = async () => {
+  const handleUploadSuccess = () => {
     setShowUploader(false);
-    // Mark onboarding as completed
-    if (user) {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ onboarding_completed: true })
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Failed to update onboarding status:', error);
-      }
-    }
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   const currentStepData = ONBOARDING_STEPS[currentStep];
@@ -186,9 +175,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Spreadsheet Uploader Modal */}
-      {showUploader && (
-        <SpreadsheetUploader onClose={() => setShowUploader(false)} />
-      )}
+      {showUploader && <SpreadsheetUploader onClose={() => setShowUploader(false)} onSuccess={handleUploadSuccess} />}
     </div>
   );
 }

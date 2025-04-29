@@ -1,5 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
 import { Download, Upload, X, Check, AlertCircle } from 'lucide-react';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { validateSpreadsheetFormat, parseSpreadsheet, generateTemplateFile } from '../../utils/spreadsheetParser';
@@ -12,7 +11,6 @@ interface SpreadsheetUploaderProps {
 }
 
 export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProps) {
-  const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,25 +58,7 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
     document.body.removeChild(link);
   };
 
-  const completeOnboarding = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ onboarding_completed: true })
-        .eq('user_id', user.id);
 
-      if (error) throw error;
-      
-      // Navigate to home page after successful import
-      navigate('/', { replace: true });
-    } catch (err) {
-      console.error('Failed to update onboarding status:', err);
-      // Still navigate to home even if update fails
-      navigate('/', { replace: true });
-    }
-  }, [user, supabase, navigate]);
 
   const handleMappedData = async (mappedData: any[]) => {
     setIsProcessing(true);
@@ -98,11 +78,24 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
       }
 
       setSuccess(true);
+      console.log('Data mapped successfully');
       
-      // Complete onboarding and redirect after a short delay
-      setTimeout(() => {
-        completeOnboarding();
-      }, 500);
+      // Atualizar o status de onboarding e redirecionar
+      setTimeout(async () => {
+        if (user) {
+          try {
+            await supabase
+              .from('user_profiles')
+              .update({ onboarding_completed: true })
+              .eq('user_id', user.id);
+          } catch (error) {
+            console.error('Error updating profile:', error);
+          }
+        }
+        
+        // Forçar redirecionamento para a home com refresh
+        window.location.href = window.location.origin;
+      }, 800);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import transactions');

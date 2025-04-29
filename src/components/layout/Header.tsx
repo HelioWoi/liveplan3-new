@@ -1,4 +1,4 @@
-import { Menu, X, Bell, User } from 'lucide-react';
+import { Menu, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
@@ -10,11 +10,21 @@ interface HeaderProps {
 
 export default function Header({ openSidebar }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { supabase } = useSupabase();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        return;
+      }
+      // Use the AuthStore logout function
+      logout();
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error);
+    }
   };
 
   return (

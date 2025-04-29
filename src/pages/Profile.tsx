@@ -44,7 +44,17 @@ export default function Profile() {
   const newPassword = watch('newPassword');
   
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        // You might want to show an error message to the user here
+        return;
+      }
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error);
+      // You might want to show an error message to the user here
+    }
   };
   
   const onSubmitProfile = async (data: ProfileFormValues) => {
