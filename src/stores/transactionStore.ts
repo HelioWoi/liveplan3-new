@@ -24,6 +24,8 @@ interface TransactionState {
   updateTaxEntry: (id: string, entry: Partial<TaxEntry>) => Promise<void>;
   deleteTaxEntry: (id: string) => Promise<void>;
   fetchTaxEntries: () => Promise<void>;
+  clearTransactions: () => Promise<void>;
+  bulkAddTransactions: (transactions: Omit<Transaction, 'id'>[]) => Promise<void>;
 }
 
 export const useTransactionStore = create<TransactionState>((set) => ({
@@ -163,6 +165,40 @@ export const useTransactionStore = create<TransactionState>((set) => ({
       }));
     } catch (error) {
       set({ error: 'Failed to delete tax entry', isLoading: false });
+    }
+  },
+
+  // New methods for handling spreadsheet data
+  clearTransactions: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      set(state => ({
+        transactions: [],
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: 'Failed to clear transactions', isLoading: false });
+    }
+  },
+
+  bulkAddTransactions: async (transactions) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Simulate API call with minimal delay
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const newTransactions = transactions.map(transaction => ({
+        ...transaction,
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      }));
+      
+      set(state => ({
+        transactions: newTransactions,
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: 'Failed to add transactions', isLoading: false });
     }
   },
 }));
