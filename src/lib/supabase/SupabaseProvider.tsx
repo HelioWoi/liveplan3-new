@@ -48,7 +48,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         if (pingError) {
           if (pingError.code === 'PGRST204') {
             // This is actually not an error - just means no rows were found
-            console.log('Supabase connection successful (no data found)');
+            // console.log('Supabase connection successful (no data found)');
             setIsInitialized(true);
             setRetryCount(0);
             return;
@@ -62,7 +62,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         }
 
         // If we get here, connection was successful
-        console.log('Supabase connection successful');
+        // console.log('Supabase connection successful');
         setIsInitialized(true);
         setRetryCount(0);
 

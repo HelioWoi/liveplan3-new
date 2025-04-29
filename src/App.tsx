@@ -59,11 +59,9 @@ function App() {
   }, [navigate]);
 
   useEffect(() => {
-    // Check active session
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
         if (error) {
           console.error('Session check error:', error);
           setUser(null);
@@ -72,35 +70,47 @@ function App() {
           }
           return;
         }
-
+  
         if (session) {
           const currentUser = session.user;
           setUser(currentUser);
-
+  
           // Check if user needs onboarding
-          const { data: profile } = await supabase
+          const { data: profiles, error: profileError } = await supabase
             .from('user_profiles')
             .select('onboarding_completed')
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
-
-          // If user is new or hasn't completed onboarding, redirect to onboarding
-          if (!profile || !profile.onboarding_completed) {
-            // If no profile exists, create one
-            if (!profile) {
-              const { error: insertError } = await supabase
-                .from('user_profiles')
-                .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
-              
-              if (insertError) {
-                console.error('Failed to create user profile:', insertError);
-              }
+            .eq('user_id', currentUser.id);
+  
+          if (profileError) {
+            console.error('Failed to fetch user profiles:', profileError);
+            setUser(null);
+            navigate('/login');
+            return;
+          }
+  
+          if (profiles?.length > 1) {
+            console.warn(`Multiple profiles found for user ${currentUser.id}. Consider adding a unique constraint on user_id.`);
+          }
+  
+          // If no profiles exist, create one
+          if (!profiles || profiles.length === 0) {
+            const { error: insertError } = await supabase
+              .from('user_profiles')
+              .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+            if (insertError) {
+              console.error('Failed to create user profile:', insertError);
             }
-
             if (location.pathname !== '/onboarding') {
               navigate('/onboarding');
-              return;
             }
+            return;
+          }
+  
+          // Check if any profile has onboarding_completed: true
+          const onboardingCompleted = profiles.some(profile => profile.onboarding_completed);
+          if (!onboardingCompleted && location.pathname !== '/onboarding') {
+            navigate('/onboarding');
+            return;
           }
         } else {
           setUser(null);
@@ -116,20 +126,20 @@ function App() {
         }
       }
     };
-
+  
     checkSession();
-
-    // Listen for auth changes
+  
+    // Auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event);
-        
+        // console.log('Auth state change:', event);
+  
         if (event === 'SIGNED_OUT') {
           setUser(null);
           navigate('/login');
           return;
         }
-
+  
         if (event === 'PASSWORD_RECOVERY') {
           const hash = window.location.hash;
           const accessToken = hash.split('access_token=')[1]?.split('&')[0];
@@ -139,7 +149,7 @@ function App() {
           }
           return;
         }
-
+  
         if (event === 'TOKEN_REFRESHED') {
           const { data: { session: newSession }, error } = await supabase.auth.getSession();
           if (error || !newSession) {
@@ -151,35 +161,45 @@ function App() {
           setUser(newSession.user);
           return;
         }
-
+  
         if (session) {
           const currentUser = session.user;
           setUser(currentUser);
-
+  
           // Check if user needs onboarding
-          const { data: profile } = await supabase
+          const { data: profiles, error: profileError } = await supabase
             .from('user_profiles')
             .select('onboarding_completed')
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
-
-          // If user is new or hasn't completed onboarding, redirect to onboarding
-          if (!profile || !profile.onboarding_completed) {
-            // If no profile exists, create one
-            if (!profile) {
-              const { error: insertError } = await supabase
-                .from('user_profiles')
-                .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
-              
-              if (insertError) {
-                console.error('Failed to create user profile:', insertError);
-              }
+            .eq('user_id', currentUser.id);
+  
+          if (profileError) {
+            console.error('Failed to fetch user profiles:', profileError);
+            setUser(null);
+            navigate('/login');
+            return;
+          }
+  
+          if (profiles?.length > 1) {
+            console.warn(`Multiple profiles found for user ${currentUser.id}. Consider adding a unique constraint on user_id.`);
+          }
+  
+          if (!profiles || profiles.length === 0) {
+            const { error: insertError } = await supabase
+              .from('user_profiles')
+              .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+            if (insertError) {
+              console.error('Failed to create user profile:', insertError);
             }
-
             if (location.pathname !== '/onboarding') {
               navigate('/onboarding');
-              return;
             }
+            return;
+          }
+  
+          const onboardingCompleted = profiles.some(profile => profile.onboarding_completed);
+          if (!onboardingCompleted && location.pathname !== '/onboarding') {
+            navigate('/onboarding');
+            return;
           }
         } else if (!publicRoutes.includes(location.pathname)) {
           setUser(null);
@@ -187,11 +207,165 @@ function App() {
         }
       }
     );
-
+  
     return () => {
       subscription.unsubscribe();
     };
   }, [supabase, setUser, navigate, location.pathname]);
+
+  
+
+  // useEffect(() => {
+  //   // Check active session
+  //   const checkSession = async () => {
+  //     try {
+  //       const { data: { session }, error } = await supabase.auth.getSession();
+        
+  //       if (error) {
+  //         console.error('Session check error:', error);
+  //         setUser(null);
+  //         if (!publicRoutes.includes(location.pathname)) {
+  //           navigate('/login');
+  //         }
+  //         return;
+  //       }
+
+  //       if (session) {
+  //         const currentUser = session.user;
+  //         setUser(currentUser);
+
+  //         // Check if user needs onboarding
+  //         const { data: profile } = await supabase
+  //           .from('user_profiles')
+  //           .select('onboarding_completed')
+  //           .eq('user_id', currentUser.id)
+  //           .maybeSingle();
+
+  //         // If user is new or hasn't completed onboarding, redirect to onboarding
+  //         if (!profile || !profile.onboarding_completed) {
+  //           // If no profile exists, create one
+  //           if (!profile) {
+  //             const { error: insertError } = await supabase
+  //               .from('user_profiles')
+  //               .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+              
+  //             if (insertError) {
+  //               console.error('Failed to create user profile:', insertError);
+  //             }
+  //           }
+
+  //           if (location.pathname !== '/onboarding') {
+  //             navigate('/onboarding');
+  //             return;
+  //           }
+  //         }
+  //       } else {
+  //         setUser(null);
+  //         if (!publicRoutes.includes(location.pathname)) {
+  //           navigate('/login');
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Session check failed:', error);
+  //       setUser(null);
+  //       if (!publicRoutes.includes(location.pathname)) {
+  //         navigate('/login');
+  //       }
+  //     }
+  //   };
+
+  //   checkSession();
+
+  //   // Listen for auth changes
+  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(
+  //     async (event, session) => {
+  //       console.log('Auth state change:', event);
+        
+  //       if (event === 'SIGNED_OUT') {
+  //         setUser(null);
+  //         navigate('/login');
+  //         return;
+  //       }
+
+  //       if (event === 'PASSWORD_RECOVERY') {
+  //         const hash = window.location.hash;
+  //         const accessToken = hash.split('access_token=')[1]?.split('&')[0];
+  //         if (accessToken) {
+  //           window.history.replaceState(null, '', window.location.pathname);
+  //           navigate('/reset-password', { state: { accessToken } });
+  //         }
+  //         return;
+  //       }
+
+  //       if (event === 'TOKEN_REFRESHED') {
+  //         const { data: { session: newSession }, error } = await supabase.auth.getSession();
+  //         if (error || !newSession) {
+  //           console.error('Token refresh failed:', error);
+  //           setUser(null);
+  //           navigate('/login');
+  //           return;
+  //         }
+  //         setUser(newSession.user);
+  //         return;
+  //       }
+
+  //       if (session) {
+  //         const currentUser = session.user;
+  //         setUser(currentUser);
+
+  //         // Check if user needs onboarding
+  //         const { data: profile } = await supabase
+  //           .from('user_profiles')
+  //           .select('onboarding_completed')
+  //           .eq('user_id', currentUser.id)
+  //           .maybeSingle();
+
+  //         // If user is new or hasn't completed onboarding, redirect to onboarding
+  //         if (!profile || !profile.onboarding_completed) {
+  //           // If no profile exists, create one
+  //           // if (!profile) {
+  //           //   const { error: insertError } = await supabase
+  //           //     .from('user_profiles')
+  //           //     .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+              
+  //           //   if (insertError) {
+  //           //     console.error('Failed to create user profile:', insertError);
+  //           //   }
+  //           // }
+  //           if (!profile) {
+  //             const { data: existingProfile } = await supabase
+  //               .from('user_profiles')
+  //               .select('user_id')
+  //               .eq('user_id', currentUser.id)
+  //               .maybeSingle();
+              
+  //               console.log('existingProfile',existingProfile)
+  //             if (!existingProfile) {
+  //               const { error: insertError } = await supabase
+  //                 .from('user_profiles')
+  //                 .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+  //               if (insertError) {
+  //                 console.error('Failed to create user profile:', insertError);
+  //               }
+  //             }
+  //           }
+
+  //           if (location.pathname !== '/onboarding') {
+  //             navigate('/onboarding');
+  //             return;
+  //           }
+  //         }
+  //       } else if (!publicRoutes.includes(location.pathname)) {
+  //         setUser(null);
+  //         navigate('/login');
+  //       }
+  //     }
+  //   );
+
+  //   return () => {
+  //     subscription.unsubscribe();
+  //   };
+  // }, [supabase, setUser, navigate, location.pathname]);
 
   // Loading state while checking authentication
   const isLoading = user === undefined;

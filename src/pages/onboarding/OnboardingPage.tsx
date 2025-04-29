@@ -63,20 +63,63 @@ export default function OnboardingPage() {
     }
   };
 
+  
   const handleSkip = async () => {
-    // Mark onboarding as completed
     if (user) {
-      const { error } = await supabase
+      // Update all user_profiles records for this user
+      const { error: updateError } = await supabase
         .from('user_profiles')
         .update({ onboarding_completed: true })
         .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Failed to update onboarding status:', error);
+  
+      if (updateError) {
+        console.error('Failed to update onboarding status:', updateError);
+        // Optionally show a toast notification
+        return;
       }
+  
+      // Verify that all profiles are updated
+      const { data: profiles, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('onboarding_completed')
+        .eq('user_id', user.id);
+  
+      if (fetchError) {
+        console.error('Failed to verify onboarding status:', fetchError);
+        return;
+      }
+  
+      if (profiles?.length > 1) {
+        console.warn(`Multiple profiles found for user ${user.id}. Consider adding a unique constraint on user_id.`);
+      }
+  
+      const allCompleted = profiles?.some(profile => profile.onboarding_completed);
+      if (allCompleted) {
+        navigate('/');
+      } else {
+        console.error('Not all profiles have onboarding_completed set to true');
+        // Optionally show a toast notification
+      }
+    } else {
+      navigate('/login');
     }
-    navigate('/');
   };
+
+
+  // const handleSkip = async () => {
+  //   // Mark onboarding as completed
+  //   if (user) {
+  //     const { error } = await supabase
+  //       .from('user_profiles')
+  //       .update({ onboarding_completed: true })
+  //       .eq('user_id', user.id);
+
+  //     if (error) {
+  //       console.error('Failed to update onboarding status:', error);
+  //     }
+  //   }
+  //   navigate('/');
+  // };
 
   const handleUploadSuccess = () => {
     setShowUploader(false);
