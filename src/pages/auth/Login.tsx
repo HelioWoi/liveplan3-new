@@ -19,6 +19,7 @@ export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>();
   
   const from = (location.state as any)?.from?.pathname || '/';
+  const message = (location.state as any)?.message;
   
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
@@ -60,6 +61,12 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {message && (
+              <div className="p-4 rounded-lg bg-success-50 border border-success-200 animate-slide-down">
+                <p className="text-sm text-success-700">{message}</p>
+              </div>
+            )}
+
             {loginError && (
               <div className="p-4 rounded-lg bg-error-50 border border-error-200 animate-slide-down">
                 <p className="text-sm text-error-700">{loginError}</p>
@@ -72,7 +79,7 @@ export default function Login() {
                   Email address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                   <input
                     id="email"
                     type="email"
@@ -97,7 +104,7 @@ export default function Login() {
                   Password
                 </label>
                 <div className="relative">
-                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <LockKeyhole className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                   <input
                     id="password"
                     type="password"
@@ -126,7 +133,7 @@ export default function Login() {
               </div>
 
               <Link 
-                to="/reset-password" 
+                to="/request-password-reset" 
                 className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
               >
                 Forgot password?
@@ -176,9 +183,9 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A40] to-transparent opacity-90"></div>
         <div className="relative h-full flex items-center justify-center text-white p-16">
           <div className="max-w-xl text-center">
-            <h2 className="text-4xl font-bold mb-6">Take control of your financial future</h2>
+            <h2 className="text-4xl font-bold mb-6">Take the first step toward financial organization.</h2>
             <p className="text-lg text-gray-200">
-              Track your expenses, set goals, and watch your wealth grow with LivePlan³'s comprehensive financial planning tools.
+              With LivePlan³, your financial journey starts with small, consistent actions.
             </p>
           </div>
         </div>

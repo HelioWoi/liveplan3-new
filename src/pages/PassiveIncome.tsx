@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LineChart, 
@@ -10,13 +10,20 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
-import { Calculator, Info, TrendingUp, Target, ChevronRight, HeartHandshake, Share2 } from 'lucide-react';
+import { Calculator, Info, TrendingUp, Target, ChevronRight, HeartHandshake, Share2, Download, ChevronLeft } from 'lucide-react';
 import { useGoalsStore } from '../stores/goalsStore';
 import { formatISO } from 'date-fns';
 import PageHeader from '../components/layout/PageHeader';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import classNames from 'classnames';
 import { useSupabase } from '../lib/supabase/SupabaseProvider';
+
+interface MonthlyProjection {
+  month: number;
+  contribution: number;
+  balance: number;
+  monthlyIncome: number;
+}
 
 interface SimulationData {
   year: number;
@@ -26,18 +33,23 @@ interface SimulationData {
   monthlyIncome: number;
 }
 
-export default function PassiveIncome() {
+export default function Simulator() {
   const navigate = useNavigate();
   const { addGoal } = useGoalsStore();
   const { supabase } = useSupabase();
   
   // Form state
   const [investmentName, setInvestmentName] = useState('');
-  const [initialInvestment, setInitialInvestment] = useState(5000);
-  const [monthlyContribution, setMonthlyContribution] = useState(500);
+  const [initialInvestment, setInitialInvestment] = useState('');
+  const [monthlyContribution, setMonthlyContribution] = useState('');
   const [investmentTerm, setInvestmentTerm] = useState(30);
   const [expectedReturn, setExpectedReturn] = useState(18);
   const [contributionGrowth, setContributionGrowth] = useState(10);
+  
+  // Monthly projections state
+  const [monthlyProjections, setMonthlyProjections] = useState<MonthlyProjection[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const monthsPerPage = 12;
   
   // UI state
   const [simulationData, setSimulationData] = useState<SimulationData[]>([]);
@@ -45,29 +57,114 @@ export default function PassiveIncome() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [openExplanation, setOpenExplanation] = useState<string | null>(null);
+
+  const toggleExplanation = (id: string) => {
+    setOpenExplanation(openExplanation === id ? null : id);
+  };
+
+  const handleInitialInvestmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9.]/g, '');
+    if (value === '' || value === '.') {
+      setInitialInvestment('');
+      return;
+    }
+    
+    // Handle decimal points
+    const parts = value.split('.');
+    if (parts.length > 2) return;
+    if (parts[1]?.length > 2) return;
+    
+    setInitialInvestment(value);
+  };
+
+  const handleMonthlyContributionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9.]/g, '');
+    if (value === '' || value === '.') {
+      setMonthlyContribution('');
+      return;
+    }
+    
+    // Handle decimal points
+    const parts = value.split('.');
+    if (parts.length > 2) return;
+    if (parts[1]?.length > 2) return;
+    
+    setMonthlyContribution(value);
+  };
+
+  const formatCurrency = (value: string | number): string => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return 'AU$ 0.00';
+    
+    return new Intl.NumberFormat('en-AU', {
+      style: 'currency',
+      currency: 'AUD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numValue);
+  };
+
+  const handleInputBlur = (value: string, setter: (value: string) => void) => {
+    if (!value) {
+      setter('');
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      setter('');
+      return;
+    }
+    setter(formatCurrency(numValue));
+  };
+
+  // Calculate monthly projections
+  const calculateMonthlyProjections = () => {
+    const projections: MonthlyProjection[] = [];
+    let balance = parseFloat(initialInvestment.replace(/[^0-9.]/g, '') || '0');
+    let monthlyAmount = parseFloat(monthlyContribution.replace(/[^0-9.]/g, '') || '0');
+    const monthlyRate = (Math.pow(1 + expectedReturn / 100, 1/12) - 1);
+    const monthlyGrowthRate = (Math.pow(1 + contributionGrowth / 100, 1/12) - 1);
+
+    for (let month = 1; month <= investmentTerm * 12; month++) {
+      const monthlyReturn = balance * monthlyRate;
+      balance += monthlyAmount + monthlyReturn;
+      const monthlyIncome = balance * 0.01;
+      monthlyAmount *= (1 + monthlyGrowthRate);
+      
+      projections.push({
+        month,
+        contribution: monthlyAmount,
+        balance,
+        monthlyIncome,
+      });
+    }
+
+    setMonthlyProjections(projections);
+  };
+
+  useEffect(() => {
+    if (simulationData.length > 0) {
+      calculateMonthlyProjections();
+    }
+  }, [simulationData]);
 
   const calculateCompoundInterest = () => {
     setIsCalculating(true);
     
     const data: SimulationData[] = [];
-    let balance = initialInvestment;
-    let totalContributions = initialInvestment;
-    let monthlyAmount = monthlyContribution;
+    let balance = parseFloat(initialInvestment.replace(/[^0-9.]/g, '') || '0');
+    let totalContributions = balance;
+    let monthlyAmount = parseFloat(monthlyContribution.replace(/[^0-9.]/g, '') || '0');
     
     for (let year = 0; year <= investmentTerm; year++) {
-      // Calculate annual return
       const annualReturn = balance * (expectedReturn / 100);
-      
-      // Add annual contributions
       const annualContribution = monthlyAmount * 12;
       balance += annualContribution + annualReturn;
       totalContributions += annualContribution;
-      
-      // Calculate monthly passive income (1% monthly dividend yield)
-      const monthlyIncome = balance * 0.01;
-      
-      // Increase monthly contribution by growth rate
       monthlyAmount *= (1 + contributionGrowth / 100);
+      
+      const monthlyIncome = balance * 0.01;
       
       data.push({
         year,
@@ -94,7 +191,7 @@ export default function PassiveIncome() {
         title: investmentName,
         description: `Passive Income Investment - ${investmentTerm} years @ ${expectedReturn}% return`,
         targetAmount: finalAmount,
-        currentAmount: initialInvestment,
+        currentAmount: parseFloat(initialInvestment.replace(/[^0-9.-]+/g, '')),
         targetDate: formatISO(new Date(new Date().setFullYear(new Date().getFullYear() + investmentTerm))),
         userId: 'current-user',
       });
@@ -108,13 +205,26 @@ export default function PassiveIncome() {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-AU', {
-      style: 'currency',
-      currency: 'AUD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
+  const exportToCSV = () => {
+    const headers = ['Month', 'Contribution', 'Balance', 'Monthly Income'];
+    const csvContent = [
+      headers.join(','),
+      ...monthlyProjections.map(row => [
+        row.month,
+        formatCurrency(row.contribution.toString()),
+        formatCurrency(row.balance.toString()),
+        formatCurrency(row.monthlyIncome.toString())
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `investment_projections_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleShare = async (method: 'email' | 'sms') => {
@@ -125,8 +235,8 @@ export default function PassiveIncome() {
 
     const shareText = `Check out my investment projection with LivePlan³!\n\n` +
       `Investment Term: ${investmentTerm} years\n` +
-      `Final Balance: ${formatCurrency(finalBalance)}\n` +
-      `Monthly Passive Income: ${formatCurrency(monthlyIncome)}\n\n` +
+      `Final Balance: ${formatCurrency(finalBalance.toString())}\n` +
+      `Monthly Passive Income: ${formatCurrency(monthlyIncome.toString())}\n\n` +
       `Start your financial journey today!`;
 
     try {
@@ -141,75 +251,88 @@ export default function PassiveIncome() {
     }
   };
 
+  // Get paginated data
+  const paginatedData = monthlyProjections.slice(
+    (currentPage - 1) * monthsPerPage,
+    currentPage * monthsPerPage
+  );
+
+  const totalPages = Math.ceil(monthlyProjections.length / monthsPerPage);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <PageHeader title="Passive Income" />
+      <PageHeader title="Investment Simulator" />
       
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <p className="text-gray-600 mb-8 text-center max-w-2xl mx-auto">
-          Simulate your future wealth and monthly income through consistent investing. 
-          See how compound interest and regular contributions can grow your wealth over time.
-        </p>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calculator Form */}
           <div className="lg:col-span-1">
-            <div className="card">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                  <Calculator className="h-6 w-6 text-primary-600" />
+            <div className="bg-white rounded-xl p-8 shadow-card">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-16 h-16 bg-[#EEF2FF] rounded-full flex items-center justify-center">
+                  <Calculator className="h-8 w-8 text-[#4F46E5]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Investment Calculator</h2>
-                  <p className="text-sm text-gray-500">Plan your financial future</p>
+                  <h2 className="text-2xl font-bold text-gray-900">Investment Calculator</h2>
+                  <p className="text-gray-500">Plan your financial future</p>
                 </div>
               </div>
               
-              <div className="space-y-6">
-                <div className="form-group">
-                  <label className="label">Investment Name</label>
+              <div className="space-y-8">
+                <div>
+                  <label className="text-lg font-medium text-gray-700 mb-2 block">
+                    Investment Name
+                  </label>
                   <input
                     type="text"
-                    className="input"
+                    className="w-full px-4 py-3 text-lg bg-white rounded-xl border border-gray-200 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition-colors"
                     placeholder="e.g., Retirement Fund"
                     value={investmentName}
                     onChange={(e) => setInvestmentName(e.target.value)}
                   />
                 </div>
                 
-                <div className="form-group">
-                  <label className="label">Initial Investment</label>
+                <div>
+                  <label className="text-lg font-medium text-gray-700 mb-2 block">
+                    Initial Investment
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
                     <input
-                      type="number"
-                      className="input pl-8"
-                      min="0"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      className="w-full pl-12 pr-4 py-3 text-lg bg-white rounded-xl border border-gray-200 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition-colors"
+                      placeholder="0.00"
                       value={initialInvestment}
-                      onChange={(e) => setInitialInvestment(Number(e.target.value))}
+                      onChange={handleInitialInvestmentChange}
+                      onBlur={(e) => handleInputBlur(e.target.value, setInitialInvestment)}
                     />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">AU$</span>
                   </div>
                 </div>
                 
-                <div className="form-group">
-                  <label className="label">Monthly Contribution</label>
+                <div>
+                  <label className="text-lg font-medium text-gray-700 mb-2 block">
+                    Monthly Contribution
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
                     <input
-                      type="number"
-                      className="input pl-8"
-                      min="0"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      className="w-full pl-12 pr-4 py-3 text-lg bg-white rounded-xl border border-gray-200 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition-colors"
+                      placeholder="0.00"
                       value={monthlyContribution}
-                      onChange={(e) => setMonthlyContribution(Number(e.target.value))}
+                      onChange={handleMonthlyContributionChange}
+                      onBlur={(e) => handleInputBlur(e.target.value, setMonthlyContribution)}
                     />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">AU$</span>
                   </div>
                 </div>
-                
-                <div className="form-group">
-                  <label className="label">Investment Term (Years)</label>
-                  <div className="text-center mb-2 text-2xl font-bold text-primary-600">
+
+                <div>
+                  <label className="text-lg font-medium text-gray-700 mb-2 block">
+                    Investment Term (Years)
+                  </label>
+                  <div className="text-center mb-2 text-2xl font-bold text-[#4F46E5]">
                     {investmentTerm} Years
                   </div>
                   <input
@@ -219,7 +342,7 @@ export default function PassiveIncome() {
                     step="1"
                     value={investmentTerm}
                     onChange={(e) => setInvestmentTerm(Number(e.target.value))}
-                    className="w-full"
+                    className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-1">
                     <span>1 year</span>
@@ -228,11 +351,13 @@ export default function PassiveIncome() {
                   </div>
                 </div>
                 
-                <div className="form-group">
-                  <label className="label">Expected Annual Return (%)</label>
+                <div>
+                  <label className="text-lg font-medium text-gray-700 mb-2 block">
+                    Expected Annual Return (%)
+                  </label>
                   <input
                     type="number"
-                    className="input"
+                    className="w-full px-4 py-3 text-lg bg-white rounded-xl border border-gray-200 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition-colors"
                     min="0"
                     max="30"
                     step="0.1"
@@ -241,11 +366,13 @@ export default function PassiveIncome() {
                   />
                 </div>
                 
-                <div className="form-group">
-                  <label className="label">Annual Contribution Growth (%)</label>
+                <div>
+                  <label className="text-lg font-medium text-gray-700 mb-2 block">
+                    Annual Contribution Growth (%)
+                  </label>
                   <input
                     type="number"
-                    className="input"
+                    className="w-full px-4 py-3 text-lg bg-white rounded-xl border border-gray-200 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition-colors"
                     min="0"
                     max="20"
                     step="0.1"
@@ -257,14 +384,14 @@ export default function PassiveIncome() {
                 <button
                   onClick={calculateCompoundInterest}
                   disabled={isCalculating}
-                  className="btn btn-primary w-full"
+                  className="w-full py-4 text-lg font-semibold bg-[#4F46E5] text-white rounded-xl hover:bg-[#4338CA] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   {isCalculating ? 'Calculating...' : 'Simulate Growth'}
                 </button>
               </div>
             </div>
           </div>
-          
+
           {/* Results Section */}
           <div className="lg:col-span-2">
             {simulationData.length > 0 ? (
@@ -289,9 +416,35 @@ export default function PassiveIncome() {
                       </div>
                       <h3 className="text-lg font-semibold">Final Balance</h3>
                     </div>
-                    <p className="text-2xl font-bold text-primary-600">
-                      {formatCurrency(simulationData[simulationData.length - 1].balance)}
+                    <p className="text-2xl font-bold text-primary-600 mb-2">
+                      {formatCurrency(simulationData[simulationData.length - 1].balance.toString())}
                     </p>
+                    <button
+                      onClick={() => toggleExplanation('finalBalance')}
+                      className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                    >
+                      What does this mean?
+                      <ChevronRight 
+                        className={`h-4 w-4 transition-transform ${openExplanation === 'finalBalance' ? 'rotate-90' : ''}`}
+                      />
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ${
+                        openExplanation === 'finalBalance' ? 'max-h-96 mt-3' : 'max-h-0'
+                      }`}
+                    >
+                      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 mb-2">This is the total wealth accumulated at the end of the simulation period.</p>
+                        <p className="mb-2">Final Balance = All your money after compound growth</p>
+                        <p className="mb-1">Includes:</p>
+                        <ul className="list-disc list-inside pl-2 space-y-1">
+                          <li>Initial investment</li>
+                          <li>Monthly contributions</li>
+                          <li>Contribution growth</li>
+                          <li>Compounded returns</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="bg-white rounded-xl p-6 shadow-card">
@@ -301,9 +454,34 @@ export default function PassiveIncome() {
                       </div>
                       <h3 className="text-lg font-semibold">Total Invested</h3>
                     </div>
-                    <p className="text-2xl font-bold text-secondary-600">
-                      {formatCurrency(simulationData[simulationData.length - 1].contributions)}
+                    <p className="text-2xl font-bold text-secondary-600 mb-2">
+                      {formatCurrency(simulationData[simulationData.length - 1].contributions.toString())}
                     </p>
+                    <button
+                      onClick={() => toggleExplanation('totalInvested')}
+                      className="text-sm text-secondary-600 hover:text-secondary-700 flex items-center gap-1"
+                    >
+                      What does this mean?
+                      <ChevronRight 
+                        className={`h-4 w-4 transition-transform ${openExplanation === 'totalInvested' ? 'rotate-90' : ''}`}
+                      />
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ${
+                        openExplanation === 'totalInvested' ? 'max-h-96 mt-3' : 'max-h-0'
+                      }`}
+                    >
+                      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 mb-2">This is the total amount you personally invested from your pocket.</p>
+                        <p className="mb-2">Total Invested = Initial investment + Sum of all monthly contributions</p>
+                        <div className="bg-white rounded-lg p-3 mt-2">
+                          <p className="font-medium text-gray-900 mb-1">Example:</p>
+                          <p>Initial = AU$100,000</p>
+                          <p>Contributions over 30 years ≈ AU$1,350,154</p>
+                          <p className="mt-1 font-medium">Total Invested = AU$1,450,154</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="bg-white rounded-xl p-6 shadow-card">
@@ -313,44 +491,120 @@ export default function PassiveIncome() {
                       </div>
                       <h3 className="text-lg font-semibold">Total Returns</h3>
                     </div>
-                    <p className="text-2xl font-bold text-accent-600">
-                      {formatCurrency(simulationData[simulationData.length - 1].returns)}
+                    <p className="text-2xl font-bold text-accent-600 mb-2">
+                      {formatCurrency(simulationData[simulationData.length - 1].returns.toString())}
                     </p>
+                    <button
+                      onClick={() => toggleExplanation('totalReturns')}
+                      className="text-sm text-accent-600 hover:text-accent-700 flex items-center gap-1"
+                    >
+                      What does this mean?
+                      <ChevronRight 
+                        className={`h-4 w-4 transition-transform ${openExplanation === 'totalReturns' ? 'rotate-90' : ''}`}
+                      />
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ${
+                        openExplanation === 'totalReturns' ? 'max-h-96 mt-3' : 'max-h-0'
+                      }`}
+                    >
+                      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 mb-2">This is your <em>real profit</em> — the money that grew from your investments.</p>
+                        <p className="mb-4">Total Returns = Final Balance − Total Invested</p>
+                        <div className="bg-white rounded-lg p-3">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-1">Metric</th>
+                                <th className="text-left py-1">What it Means</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="border-b">
+                                <td className="py-1 font-medium">Final Balance</td>
+                                <td className="py-1">Total wealth with compound growth</td>
+                              </tr>
+                              <tr className="border-b">
+                                <td className="py-1 font-medium">Total Invested</td>
+                                <td className="py-1">Everything you personally contributed</td>
+                              </tr>
+                              <tr>
+                                <td className="py-1 font-medium">Total Returns</td>
+                                <td className="py-1">Profit earned from investment growth</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Monthly Passive Income Projections */}
-                <div className="bg-white rounded-xl p-6 shadow-card">
-                  <div className="flex items-center gap-3 mb-6">
-                    <h3 className="text-xl font-bold">Monthly Passive Income</h3>
-                    <span className="text-sm text-gray-500">(Based on 1% monthly dividend yield)</span>
+                {/* Monthly Projections Table */}
+                <div className="bg-white rounded-xl p-6 shadow-card mb-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold">📈 Invest now and see how your money can grow every month!</h2>
+                    <button
+                      onClick={exportToCSV}
+                      className="btn btn-outline flex items-center gap-2"
+                    >
+                      <Download className="h-5 w-5" />
+                      Download as CSV
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {[10, 30, 60].map(year => {
-                      const yearData = simulationData.find(d => d.year === year);
-                      if (!yearData) return null;
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Contribution</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monthly Income</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {paginatedData.map((row) => (
+                          <tr key={row.month} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              Month {row.month}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              {formatCurrency(row.contribution.toString())}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-primary-600">
+                              {formatCurrency(row.balance.toString())}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-success-600">
+                              {formatCurrency(row.monthlyIncome.toString())}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                      return (
-                        <div key={year} className="bg-gray-50 rounded-xl p-4">
-                          <h4 className="text-lg font-semibold mb-2">{year} Years</h4>
-                          <div className="space-y-2">
-                            <div>
-                              <p className="text-sm text-gray-500">Projected Wealth</p>
-                              <p className="text-lg font-bold text-primary-600">
-                                {formatCurrency(yearData.balance)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Monthly Income</p>
-                              <p className="text-lg font-bold text-success-600">
-                                {formatCurrency(yearData.monthlyIncome)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="btn btn-outline"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="btn btn-outline"
+                    >
+                      Next
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
                   </div>
                 </div>
 
@@ -373,7 +627,7 @@ export default function PassiveIncome() {
                           label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} 
                         />
                         <Tooltip 
-                          formatter={(value) => [formatCurrency(Number(value)), undefined]}
+                          formatter={(value) => [formatCurrency(value.toString()), undefined]}
                           labelFormatter={(label) => `Year ${label}`}
                         />
                         <Legend />
@@ -458,7 +712,7 @@ export default function PassiveIncome() {
             <div className="bg-white rounded-xl p-6 max-w-md w-full animate-slide-up">
               <h2 className="text-xl font-bold mb-4">Save as Investment Goal</h2>
               <p className="text-gray-600 mb-6">
-                This will create a new goal to track your progress towards your investment target of {formatCurrency(simulationData[simulationData.length - 1].balance)}.
+                This will create a new goal to track your progress towards your investment target of {formatCurrency(simulationData[simulationData.length - 1].balance.toString())}.
               </p>
               
               <div className="space-y-4">

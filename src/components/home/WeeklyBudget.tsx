@@ -1,103 +1,99 @@
-import { useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { useState } from 'react';
+import { cn } from '../../utils/cn';
 
-interface WeeklyData {
-  week: string;
-  income: number;
-  investimento: number;
-  fixed: number;
-  variable: number;
-  extra: number;
-  additional: number;
-  tax: number;
-}
+const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const years = ['2022', '2023', '2024', '2025'];
+const categories = ['Income', 'Investment', 'Fixed', 'Variable', 'Extra', 'Additional'];
 
-const weeklyBudget: WeeklyData[] = [
-  { 
-    week: 'WEEK 1', 
-    income: 2000,
-    investimento: 400,
-    fixed: 800, 
-    variable: 300, 
-    extra: 100, 
-    additional: 200,
-    tax: 200
-  },
-  { 
-    week: 'WEEK 2', 
-    income: 2000,
-    investimento: 400,
-    fixed: 800, 
-    variable: 400, 
-    extra: 150, 
-    additional: 150,
-    tax: 200
-  },
-  { 
-    week: 'WEEK 3', 
-    income: 2000,
-    investimento: 400,
-    fixed: 800, 
-    variable: 350, 
-    extra: 50, 
-    additional: 300,
-    tax: 200
-  },
-  { 
-    week: 'WEEK 4', 
-    income: 2000,
-    investimento: 400,
-    fixed: 800, 
-    variable: 450, 
-    extra: 200, 
-    additional: 50,
-    tax: 200
-  },
-];
+const mockData = {
+  'Week 1': { Income: 0, Investment: 0, Fixed: 0, Variable: 0, Extra: 0, Additional: 0 },
+  'Week 2': { Income: 0, Investment: 0, Fixed: 0, Variable: 0, Extra: 0, Additional: 0 },
+  'Week 3': { Income: 0, Investment: 0, Fixed: 0, Variable: 0, Extra: 0, Additional: 0 },
+  'Week 4': { Income: 0, Investment: 0, Fixed: 0, Variable: 0, Extra: 0, Additional: 0 },
+};
+
+const getBalance = (data: any) => {
+  const { Income = 0, Investment = 0, Fixed = 0, Variable = 0, Extra = 0, Additional = 0 } = data;
+  return Income - (Investment + Fixed + Variable + Extra + Additional);
+};
 
 export default function WeeklyBudget() {
-  const totals = useMemo(() => {
-    return weeklyBudget.map(week => {
-      const total = week.income - week.investimento - week.fixed - week.variable - week.extra - week.additional - week.tax;
-      return total;
-    });
-  }, []);
+  const [selectedPeriod, setSelectedPeriod] = useState('Month');
+  const [selectedMonth, setSelectedMonth] = useState('April');
+  const [selectedYear, setSelectedYear] = useState('2025');
+  const currentWeekIndex = new Date().getDate() <= 7 ? 0 : new Date().getDate() <= 14 ? 1 : new Date().getDate() <= 21 ? 2 : 3;
 
-  // Determine current week (1-4)
-  const currentWeek = useMemo(() => {
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const dayOfMonth = today.getDate();
-    
-    if (dayOfMonth <= 7) return 'WEEK 1';
-    if (dayOfMonth <= 14) return 'WEEK 2';
-    if (dayOfMonth <= 21) return 'WEEK 3';
-    return 'WEEK 4';
-  }, []);
+  const formatCurrency = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="bg-white rounded-xl p-4 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px]">
+    <div>
+      {/* Period Selection */}
+      <div className="flex gap-3 mb-6 items-center flex-wrap">
+        {['Day', 'Week', 'Month', 'Year'].map(p => (
+          <button
+            key={p}
+            onClick={() => setSelectedPeriod(p)}
+            className={cn(
+              'px-4 py-1 rounded-full text-sm font-medium border',
+              selectedPeriod === p
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'text-gray-700 border-gray-300 hover:border-purple-300'
+            )}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {/* Month Buttons */}
+      {selectedPeriod === 'Month' && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {months.map(month => (
+            <button
+              key={month}
+              onClick={() => setSelectedMonth(month)}
+              className={cn(
+                'px-3 py-1 rounded-md text-sm border',
+                selectedMonth === month ? 'bg-purple-500 text-white border-purple-600' : 'text-gray-700 border-gray-300'
+              )}
+            >
+              {month}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Year Buttons */}
+      {selectedPeriod === 'Year' && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {years.map(year => (
+            <button
+              key={year}
+              onClick={() => setSelectedYear(year)}
+              className={cn(
+                'px-3 py-1 rounded-md text-sm border',
+                selectedYear === year ? 'bg-purple-500 text-white border-purple-600' : 'text-gray-700 border-gray-300'
+              )}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white rounded-xl p-4 shadow-sm overflow-x-auto">
+        <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th className="text-left py-3 px-4 text-[#1A1A80] text-sm font-medium bg-[#F8F9FF]">
-                Category
-              </th>
-              {weeklyBudget.map((week) => (
-                <th 
-                  key={week.week} 
-                  className="relative text-right py-3 px-4 text-[#1A1A80] text-sm font-medium bg-[#F8F9FF]"
-                >
-                  {week.week === currentWeek && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-primary-500"></div>
-                  )}
-                  <div className="flex items-center justify-end gap-2">
-                    {week.week}
-                    {week.week === currentWeek && (
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-800 rounded-full">
-                        Current
-                      </span>
+            <tr className="bg-gray-100 text-left text-sm text-gray-700">
+              <th className="p-3">Category</th>
+              {weeks.map((week, i) => (
+                <th key={week} className="p-3 relative">
+                  <div className="flex items-center gap-2">
+                    {week}
+                    {i === currentWeekIndex && (
+                      <span className="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">Current</span>
                     )}
                   </div>
                 </th>
@@ -105,56 +101,24 @@ export default function WeeklyBudget() {
             </tr>
           </thead>
           <tbody>
-            {[
-              { key: 'income', label: 'Income' },
-              { key: 'investimento', label: 'Investment' },
-              { key: 'fixed', label: 'Fixed' },
-              { key: 'variable', label: 'Variable' },
-              { key: 'extra', label: 'Extra' },
-              { key: 'additional', label: 'Additional' },
-              { key: 'tax', label: 'Tax' }
-            ].map(({ key, label }, index) => (
-              <tr 
-                key={key}
-                className={index % 2 === 0 ? 'bg-[#FAFBFF]' : 'bg-white'}
-              >
-                <td className="py-3 px-4 text-sm font-medium text-[#1A1A80]">
-                  {label}
-                </td>
-                {weeklyBudget.map((week) => (
-                  <td 
-                    key={`${week.week}-${key}`} 
-                    className={`text-right py-3 px-4 text-sm text-[#1A1A80] ${
-                      week.week === currentWeek ? 'bg-primary-50/50' : ''
-                    }`}
-                  >
-                    ${week[key as keyof WeeklyData].toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                  </td>
+            {categories.map(category => (
+              <tr key={category} className="border-t border-gray-200 text-sm text-gray-900">
+                <td className="p-3 font-medium">{category}</td>
+                {weeks.map(week => (
+                  <td key={week} className="p-3">{formatCurrency(mockData[week][category] ?? 0)}</td>
                 ))}
               </tr>
             ))}
-            <tr className="border-t-2 border-[#E5E7FF]">
-              <td className="py-3 px-4 text-sm font-bold text-[#1A1A80]">
-                Balance
-              </td>
-              {totals.map((total, index) => (
-                <td 
-                  key={`total-${index}`} 
-                  className={`text-right py-3 px-4 text-sm font-bold ${
-                    weeklyBudget[index].week === currentWeek ? 'bg-primary-50/50' : ''
-                  } ${
-                    total >= 0 ? 'text-[#00A389]' : 'text-[#FF3B3B]'
-                  }`}
-                >
-                  ${total.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}
-                </td>
-              ))}
+            {/* Balance row */}
+            <tr className="border-t-2 border-gray-300 font-bold">
+              <td className="p-3">Balance</td>
+              {weeks.map(week => {
+                const balance = getBalance(mockData[week]);
+                const color = balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-500' : 'text-black';
+                return (
+                  <td key={week} className={cn("p-3", color)}>{formatCurrency(balance)}</td>
+                );
+              })}
             </tr>
           </tbody>
         </table>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTransactionStore } from '../stores/transactionStore';
 import { format } from 'date-fns';
 import { ArrowDownCircle, ArrowUpCircle, Download, FilterX, PlusCircle, Search, Trash2 } from 'lucide-react';
-import TransactionForm from '../components/forms/TransactionForm';
+import TransactionModal from '../components/modals/TransactionModal';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import PageHeader from '../components/layout/PageHeader';
 import { TransactionCategory, isIncomeCategory } from '../types/transaction';
@@ -10,7 +10,7 @@ import { formatCurrency } from '../utils/formatters';
 
 export default function Transactions() {
   const { transactions, fetchTransactions, deleteTransaction } = useTransactionStore();
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategory | 'all'>('all');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -87,9 +87,6 @@ export default function Transactions() {
     }
   };
 
-  // Get recent transactions for the summary section
-  const recentTransactions = sortedTransactions.slice(0, 5);
-
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <PageHeader 
@@ -99,51 +96,11 @@ export default function Transactions() {
       />
       
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Recent Transactions Summary */}
-        <div className="bg-white rounded-xl p-6 shadow-card mb-6">
-          <h2 className="text-xl font-bold mb-4">Recent Transactions</h2>
-          <div className="space-y-4">
-            {recentTransactions.map(transaction => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isIncomeCategory(transaction.category) ? 'bg-success-100' : 'bg-error-100'
-                  }`}>
-                    {isIncomeCategory(transaction.category) ? (
-                      <ArrowUpCircle className="h-5 w-5 text-success-600" />
-                    ) : (
-                      <ArrowDownCircle className="h-5 w-5 text-error-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium">{transaction.origin}</p>
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(transaction.date), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`font-medium ${
-                    isIncomeCategory(transaction.category) ? 'text-success-600' : 'text-error-600'
-                  }`}>
-                    {isIncomeCategory(transaction.category) ? '+' : '-'}{formatCurrency(transaction.amount)}
-                  </span>
-                  <div className="mt-1">
-                    <span className={getCategoryBadgeClass(transaction.category)}>
-                      {transaction.category}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div className="flex gap-2">
             <button 
               className="btn btn-primary flex-1 sm:flex-none"
-              onClick={() => setShowForm(true)}
+              onClick={() => setShowModal(true)}
             >
               <PlusCircle className="h-5 w-5 mr-2" />
               Add New
@@ -264,7 +221,7 @@ export default function Transactions() {
               <p className="text-gray-500 mb-4">No transactions found</p>
               <button 
                 className="btn btn-primary"
-                onClick={() => setShowForm(true)}
+                onClick={() => setShowModal(true)}
               >
                 <PlusCircle className="h-5 w-5 mr-2" />
                 Add Transaction
@@ -272,26 +229,14 @@ export default function Transactions() {
             </div>
           )}
         </div>
-        
-        {/* Transaction Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 max-w-md w-full animate-slide-up">
-              <h2 className="text-xl font-bold mb-4">Add New Transaction</h2>
-              <TransactionForm 
-                onSuccess={() => setShowForm(false)}
-              />
-              <button 
-                className="mt-4 w-full py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                onClick={() => setShowForm(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
 
-        <BottomNavigation />
+        {/* Transaction Modal */}
+        <TransactionModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+        />
+
+        <BottomNavigation onAddClick={() => setShowModal(true)} />
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useSupabase } from '../lib/supabase/SupabaseProvider';
 import { useForm } from 'react-hook-form';
-import { User, Shield, LogOut, Mail, HelpCircle } from 'lucide-react';
+import { User, Shield, LogOut, Mail, HelpCircle, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BottomNavigation from '../components/layout/BottomNavigation';
 
@@ -123,6 +123,15 @@ export default function Profile() {
                   </span>
                 </div>
                 <div className="border-t border-gray-100 mt-2 pt-2">
+                  <Link 
+                    to="/tax"
+                    className="flex items-center justify-between py-2 text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    <span className="flex items-center">
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Tax Overview
+                    </span>
+                  </Link>
                   <Link 
                     to="/help"
                     className="flex items-center justify-between py-2 text-sm text-primary-600 hover:text-primary-700"

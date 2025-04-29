@@ -1,26 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
-import { ArrowLeft, MoreVertical, Minus, Plus, ChevronDown, Check } from 'lucide-react';
-import { TransactionCategory, TRANSACTION_CATEGORIES } from '../types/transaction';
+import { ArrowLeft, MoreVertical, Minus, Plus, Check } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import classNames from 'classnames';
 
-const AMOUNT_PRESETS = [50, 100, 150, 200, 250, 300, 350, 400, 450];
+const AMOUNT_PRESETS = [1000, 5000, 10000, 25000, 50000, 75000, 100000];
 
 export default function IncomePage() {
   const navigate = useNavigate();
   const { addTransaction } = useTransactionStore();
   const [amount, setAmount] = useState<string>('150.00');
   const [origin, setOrigin] = useState('');
-  const [category, setCategory] = useState<TransactionCategory>('Income');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showError, setShowError] = useState(false);
 
   const handleAmountChange = (value: number) => {
     const currentAmount = parseFloat(amount);
-    const newAmount = Math.max(0, Math.min(currentAmount + value, 999999.99));
+    const newAmount = Math.max(0, Math.min(currentAmount + value, 100000.00));
     setAmount(newAmount.toFixed(2));
   };
 
@@ -39,7 +36,7 @@ export default function IncomePage() {
       await addTransaction({
         origin: origin.trim(),
         amount: parseFloat(amount),
-        category,
+        category: 'Income',
         type: 'income',
         date: new Date().toISOString(),
         userId: 'current-user',
@@ -96,39 +93,6 @@ export default function IncomePage() {
             )}
           </div>
 
-          {/* Category Selector */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-600 mb-2">
-              Category <span className="text-error-600">*</span>
-            </label>
-            <div className="relative">
-              <button
-                className="w-full px-4 py-3 bg-gray-50 rounded-xl flex items-center justify-between border border-gray-200 focus:border-[#120B39] focus:ring-1 focus:ring-[#120B39] transition-colors"
-                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              >
-                <span className="text-lg font-medium">{category}</span>
-                <ChevronDown className={`h-5 w-5 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {showCategoryDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-10">
-                  {TRANSACTION_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
-                      onClick={() => {
-                        setCategory(cat);
-                        setShowCategoryDropdown(false);
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Amount Picker */}
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-8 mb-8">
@@ -154,7 +118,7 @@ export default function IncomePage() {
               <input
                 type="range"
                 min="0"
-                max="999.99"
+                max="100000"
                 step="0.01"
                 value={amount}
                 onChange={handleSliderChange}
@@ -175,7 +139,7 @@ export default function IncomePage() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                 >
-                  ${preset}
+                  ${preset.toLocaleString()}
                 </button>
               ))}
             </div>
