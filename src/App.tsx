@@ -92,13 +92,21 @@ function App() {
             console.warn(`Multiple profiles found for user ${currentUser.id}. Consider adding a unique constraint on user_id.`);
           }
   
-          // If no profiles exist, create one
+          // If no profiles exist, create one with duplicate check
           if (!profiles || profiles.length === 0) {
-            const { error: insertError } = await supabase
+            const { data: existingProfile } = await supabase
               .from('user_profiles')
-              .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
-            if (insertError) {
-              console.error('Failed to create user profile:', insertError);
+              .select('user_id')
+              .eq('user_id', currentUser.id)
+              .maybeSingle();
+  
+            if (!existingProfile) {
+              const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+              if (insertError) {
+                console.error('Failed to create user profile:', insertError);
+              }
             }
             if (location.pathname !== '/onboarding') {
               navigate('/onboarding');
@@ -184,11 +192,19 @@ function App() {
           }
   
           if (!profiles || profiles.length === 0) {
-            const { error: insertError } = await supabase
+            const { data: existingProfile } = await supabase
               .from('user_profiles')
-              .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
-            if (insertError) {
-              console.error('Failed to create user profile:', insertError);
+              .select('user_id')
+              .eq('user_id', currentUser.id)
+              .maybeSingle();
+  
+            if (!existingProfile) {
+              const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([{ user_id: currentUser.id, onboarding_completed: false }]);
+              if (insertError) {
+                console.error('Failed to create user profile:', insertError);
+              }
             }
             if (location.pathname !== '/onboarding') {
               navigate('/onboarding');
