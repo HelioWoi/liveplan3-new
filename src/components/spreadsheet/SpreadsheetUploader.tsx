@@ -70,7 +70,8 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
         .eq('user_id', user.id);
 
       if (error) throw error;
-      
+
+      // Navigate to home page after successful profile update
       navigate('/', { replace: true });
     } catch (err) {
       console.error('Failed to update onboarding status:', err);
@@ -99,8 +100,22 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
 
       setSuccess(true);
       
-      // Complete onboarding and redirect
-      await completeOnboarding();
+      // Update profile and navigate
+      if (user) {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ onboarding_completed: true })
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Failed to update profile:', error);
+        }
+      }
+
+      // Short delay to show success message before navigating
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 1500);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import transactions');
