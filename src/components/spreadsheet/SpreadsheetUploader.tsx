@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Upload, X, Check, AlertCircle } from 'lucide-react';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { validateSpreadsheetFormat, parseSpreadsheet, generateTemplateFile } from '../../utils/spreadsheetParser';
@@ -11,10 +12,11 @@ interface SpreadsheetUploaderProps {
 }
 
 export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProps) {
+  const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { addTransaction } = useTransactionStore();
+  const { clearTransactions, bulkAddTransactions } = useTransactionStore();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,44 +60,47 @@ export default function SpreadsheetUploader({ onClose }: SpreadsheetUploaderProp
     document.body.removeChild(link);
   };
 
+  const completeOnboarding = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ onboarding_completed: true })
+        .eq('user_id', user.id);
 
+      if (error) throw error;
+      
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('Failed to update onboarding status:', err);
+      // Still navigate to home even if update fails
+      navigate('/', { replace: true });
+    }
+  }, [user, supabase, navigate]);
 
   const handleMappedData = async (mappedData: any[]) => {
     setIsProcessing(true);
     setError(null);
 
     try {
-      // Add transactions to store
-      for (const transaction of mappedData) {
-        await addTransaction({
-          date: transaction.date,
-          amount: transaction.amount,
-          category: transaction.category,
-          type: transaction.type,
-          origin: transaction.description,
-          userId: user?.id || 'current-user'
-        });
-      }
+      // Clear existing transactions first
+      await clearTransactions();
+
+      // Add new transactions from spreadsheet
+      await bulkAddTransactions(mappedData.map(transaction => ({
+        date: transaction.date,
+        amount: transaction.amount,
+        category: transaction.category,
+        type: transaction.type,
+        origin: transaction.description,
+        userId: user?.id || 'current-user'
+      })));
 
       setSuccess(true);
-      console.log('Data mapped successfully');
       
-      // Atualizar o status de onboarding e redirecionar
-      setTimeout(async () => {
-        if (user) {
-          try {
-            await supabase
-              .from('user_profiles')
-              .update({ onboarding_completed: true })
-              .eq('user_id', user.id);
-          } catch (error) {
-            console.error('Error updating profile:', error);
-          }
-        }
-        
-        // Forçar redirecionamento para a home com refresh
-        window.location.href = window.location.origin;
-      }, 800);
+      // Complete onboarding and redirect
+      await completeOnboarding();
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import transactions');
