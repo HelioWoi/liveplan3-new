@@ -69,7 +69,7 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
         const headers = Object.keys(worksheet)
           .filter(key => key.match(/^[A-Z]1$/))
           .map(key => worksheet[key].v);
-
+        
         setHeaders(headers);
         setPreviewData(XLSX.utils.sheet_to_json<PreviewData>(worksheet).slice(0, 10));
         setAutoMapping(headers);
@@ -227,8 +227,40 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
             ))}
           </div>
 
+          {/* Preview Table */}
+          <div className="bg-gray-50 rounded-lg p-3">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Data Preview</h3>
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+              <div className="max-h-[200px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      {headers.map(header => (
+                        <th key={header} className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {previewData.slice(0, 5).map((row, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        {headers.map(header => (
+                          <td key={header} className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                            {row[header]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           {error && (
             <div className="bg-error-50 text-error-700 p-3 rounded-lg flex items-start gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <p>{error}</p>
             </div>
           )}
@@ -237,7 +269,7 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
             <button
               onClick={processData}
               disabled={!validateMapping() || isProcessing}
-              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 text-sm"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
             >
               Preview Result
             </button>
@@ -251,41 +283,66 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Auto-confirmação */}
-          {mappedData.length > 0 && <AutoConfirm mappedData={mappedData} onSuccess={onSuccess} />}
-
           <div>
             <h3 className="text-sm font-medium text-gray-900 mb-2">Preview Mapped Data</h3>
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-              <div className="max-h-[250px] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Type</th><th>Month</th><th>Week</th><th>Frequency</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mappedData.slice(0,5).map((row,i) => (
-                      <tr key={i}>
-                        <td>{new Date(row.date).toLocaleDateString()}</td>
-                        <td>{row.category}</td>
-                        <td>{row.description}</td>
-                        <td>{formatCurrency(row.amount)}</td>
-                        <td>{row.type}</td>
-                        <td>{row.month}</td>
-                        <td>{row.week}</td>
-                        <td>{row.frequency}</td>
+            <p className="text-xs text-gray-600 mb-3">
+              Review how your data will be imported into LivePlan³
+            </p>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <div className="max-h-[250px] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Date</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Category</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Description</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 border-b">Amount</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Type</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Month</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Week</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Frequency</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {mappedData.slice(0, 5).map((row, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 text-xs text-gray-600">
+                            {new Date(row.date).toLocaleDateString()}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.category}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.description}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600 text-right">
+                            {formatCurrency(row.amount)}
+                          </td>
+                          <td className="px-3 py-2 text-xs">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              row.type === 'income' 
+                                ? 'bg-success-100 text-success-800' 
+                                : 'bg-error-100 text-error-800'
+                            }`}>
+                              {row.type}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.month}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.week}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600">{row.frequency}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
-            <button disabled className="w-full sm:w-auto px-4 py-2 bg-primary-300 text-white rounded-lg font-medium text-sm">
-              Confirming Automatically...
+            <button
+              onClick={() => onSuccess(mappedData)}
+              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center text-sm"
+            >
+              Confirm Import
             </button>
             <button
               onClick={() => setShowPreview(false)}
@@ -298,15 +355,4 @@ export default function SmartSpreadsheetConverter({ file, onClose, onSuccess }: 
       )}
     </div>
   );
-}
-
-function AutoConfirm({ mappedData, onSuccess }: { mappedData: any[], onSuccess: (data: any[]) => void }) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onSuccess(mappedData);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [mappedData, onSuccess]);
-
-  return null;
 }
