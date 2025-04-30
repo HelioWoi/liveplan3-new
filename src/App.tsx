@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { InvestmentsPage } from './pages/InvestmentsPage';
+import InvestmentPortfolio from './pages/InvestmentPortfolio';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
@@ -64,6 +65,7 @@ function App() {
       <Route path="/income" element={<IncomePage />} />
       <Route path="/variables" element={<VariablesPage />} />
       <Route path="/investments" element={<InvestmentsPage />} />
+      <Route path="/investment-portfolio" element={<InvestmentPortfolio />} />
       <Route path="/simulator" element={<Simulator />} />
 
       {/* 404 Route */}
