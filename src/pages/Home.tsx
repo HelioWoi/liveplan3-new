@@ -75,13 +75,13 @@ export default function Home() {
             </Link>
 
             <Link 
-              to="/variables" 
+              to="/investments" 
               className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-colors"
             >
               <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
                 <BarChart2 className="h-6 w-6" />
               </div>
-              <span className="text-sm">Variables</span>
+              <span className="text-sm">Investments</span>
             </Link>
 
             <Link 
