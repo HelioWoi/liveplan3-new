@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { useAuthStore } from '../../stores/authStore';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -21,9 +22,6 @@ type SupabaseContextType = {
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 seconds
-
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
@@ -35,6 +33,29 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const { setUser } = useAuthStore();
+
+  // Check initial auth state
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user);
+      setUser(session?.user || null);
+      
+      if (event === 'SIGNED_OUT') {
+        // Clear any cached data or perform cleanup if needed
+        console.log('User signed out, clearing session');
+      }
+    });
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth, setUser]);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -48,7 +69,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         if (pingError) {
           if (pingError.code === 'PGRST204') {
             // This is actually not an error - just means no rows were found
-            // console.log('Supabase connection successful (no data found)');
+            console.log('Supabase connection successful (no data found)');
             setIsInitialized(true);
             setRetryCount(0);
             return;
@@ -62,7 +83,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         }
 
         // If we get here, connection was successful
-        // console.log('Supabase connection successful');
+        console.log('Supabase connection successful');
         setIsInitialized(true);
         setRetryCount(0);
 
@@ -78,10 +99,10 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         );
 
         // Implement retry logic
-        if (retryCount < MAX_RETRIES) {
-          console.log(`Retrying connection (attempt ${retryCount + 1} of ${MAX_RETRIES})...`);
+        if (retryCount < 3) {
+          console.log(`Retrying connection (attempt ${retryCount + 1} of 3)...`);
           setRetryCount(prev => prev + 1);
-          setTimeout(checkConnection, RETRY_DELAY);
+          setTimeout(checkConnection, 2000);
         } else {
           console.error('Max retry attempts reached');
           setIsInitialized(true); // Set to true so the app doesn't hang
@@ -91,20 +112,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
     checkConnection();
   }, [supabase, retryCount]);
-
-  // Set up auth state change listener
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        // Clear any cached data or perform cleanup if needed
-        console.log('User signed out, clearing session');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   const value = {
     supabase,
