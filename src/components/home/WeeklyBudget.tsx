@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { useSupabase } from '../../lib/supabase/SupabaseProvider';
 import { useAuthStore } from '../../stores/authStore';
 import { useWeeklyBudgetStore } from '../../stores/weeklyBudgetStore';
-import { PlusCircle, X } from 'lucide-react';
+import { PlusCircle, X, Calendar, Download } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
 const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
@@ -95,8 +95,78 @@ export default function WeeklyBudget() {
 
   const currentWeekIndex = new Date().getDate() <= 7 ? 0 : new Date().getDate() <= 14 ? 1 : new Date().getDate() <= 21 ? 2 : 3;
 
+  const exportToCSV = () => {
+    // Create headers
+    const headers = ['Category', ...weeks, 'Total'];
+    
+    // Create rows with data
+    const rows = categories.map(category => {
+      const rowData = [category];
+      let total = 0;
+      
+      // Add data for each week
+      weeks.forEach(week => {
+        const amount = budgetData[week]?.[category] || 0;
+        total += amount;
+        rowData.push(formatCurrency(amount));
+      });
+      
+      // Add total
+      rowData.push(formatCurrency(total));
+      
+      return rowData;
+    });
+    
+    // Add balance row
+    const balanceRow = ['Balance'];
+    let totalBalance = 0;
+    weeks.forEach(week => {
+      const balance = getBalance(budgetData[week]);
+      totalBalance += balance;
+      balanceRow.push(formatCurrency(balance));
+    });
+    balanceRow.push(formatCurrency(totalBalance));
+    rows.push(balanceRow);
+    
+    // Convert to CSV
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `weekly_budget_${selectedMonth}_${selectedYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div>
+      {/* Title Section */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <Calendar className="h-6 w-6 text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Weekly Budget</h2>
+            <p className="text-sm text-gray-500">Track and manage your weekly expenses</p>
+          </div>
+        </div>
+        <button
+          onClick={exportToCSV}
+          className="btn btn-outline flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export
+        </button>
+      </div>
+
       {/* Period Selection */}
       <div className="flex gap-3 mb-6 items-center flex-wrap">
         {['Day', 'Week', 'Month', 'Year'].map(p => (
