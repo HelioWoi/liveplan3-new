@@ -1,22 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
-import { Calculator, Info, TrendingUp, Target, ChevronRight, HeartHandshake, Share2, Download, ChevronLeft } from 'lucide-react';
 import { useGoalsStore } from '../stores/goalsStore';
 import { formatISO } from 'date-fns';
+import { Calculator, Info, TrendingUp, Target, ChevronRight, HeartHandshake, Share2, Download, ChevronLeft } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import BottomNavigation from '../components/layout/BottomNavigation';
+import { formatCurrency } from '../utils/formatters';
 import classNames from 'classnames';
-import { useSupabase } from '../lib/supabase/SupabaseProvider';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MonthlyProjection {
   month: number;
@@ -36,7 +27,6 @@ interface SimulationData {
 export default function Simulator() {
   const navigate = useNavigate();
   const { addGoal } = useGoalsStore();
-  const { supabase } = useSupabase();
   
   // Form state
   const [investmentName, setInvestmentName] = useState('');
@@ -91,31 +81,6 @@ export default function Simulator() {
     if (parts[1]?.length > 2) return;
     
     setMonthlyContribution(value);
-  };
-
-  const formatCurrency = (value: string | number): string => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue)) return 'AU$ 0.00';
-    
-    return new Intl.NumberFormat('en-AU', {
-      style: 'currency',
-      currency: 'AUD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(numValue);
-  };
-
-  const handleInputBlur = (value: string, setter: (value: string) => void) => {
-    if (!value) {
-      setter('');
-      return;
-    }
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) {
-      setter('');
-      return;
-    }
-    setter(formatCurrency(numValue));
   };
 
   // Calculate monthly projections
@@ -187,7 +152,7 @@ export default function Simulator() {
     try {
       const finalAmount = simulationData[simulationData.length - 1].balance;
       
-      await addGoal(supabase, {
+      await addGoal({
         title: investmentName,
         description: `Passive Income Investment - ${investmentTerm} years @ ${expectedReturn}% return`,
         targetAmount: finalAmount,
@@ -211,9 +176,9 @@ export default function Simulator() {
       headers.join(','),
       ...monthlyProjections.map(row => [
         row.month,
-        formatCurrency(row.contribution.toString()),
-        formatCurrency(row.balance.toString()),
-        formatCurrency(row.monthlyIncome.toString())
+        formatCurrency(row.contribution),
+        formatCurrency(row.balance),
+        formatCurrency(row.monthlyIncome)
       ].join(','))
     ].join('\n');
 
@@ -235,8 +200,8 @@ export default function Simulator() {
 
     const shareText = `Check out my investment projection with LivePlan³!\n\n` +
       `Investment Term: ${investmentTerm} years\n` +
-      `Final Balance: ${formatCurrency(finalBalance.toString())}\n` +
-      `Monthly Passive Income: ${formatCurrency(monthlyIncome.toString())}\n\n` +
+      `Final Balance: ${formatCurrency(finalBalance)}\n` +
+      `Monthly Passive Income: ${formatCurrency(monthlyIncome)}\n\n` +
       `Start your financial journey today!`;
 
     try {
@@ -304,7 +269,6 @@ export default function Simulator() {
                       placeholder="0.00"
                       value={initialInvestment}
                       onChange={handleInitialInvestmentChange}
-                      onBlur={(e) => handleInputBlur(e.target.value, setInitialInvestment)}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">AU$</span>
                   </div>
@@ -322,7 +286,6 @@ export default function Simulator() {
                       placeholder="0.00"
                       value={monthlyContribution}
                       onChange={handleMonthlyContributionChange}
-                      onBlur={(e) => handleInputBlur(e.target.value, setMonthlyContribution)}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">AU$</span>
                   </div>
@@ -417,7 +380,7 @@ export default function Simulator() {
                       <h3 className="text-lg font-semibold">Final Balance</h3>
                     </div>
                     <p className="text-2xl font-bold text-primary-600 mb-2">
-                      {formatCurrency(simulationData[simulationData.length - 1].balance.toString())}
+                      {formatCurrency(simulationData[simulationData.length - 1].balance)}
                     </p>
                     <button
                       onClick={() => toggleExplanation('finalBalance')}
@@ -455,7 +418,7 @@ export default function Simulator() {
                       <h3 className="text-lg font-semibold">Total Invested</h3>
                     </div>
                     <p className="text-2xl font-bold text-secondary-600 mb-2">
-                      {formatCurrency(simulationData[simulationData.length - 1].contributions.toString())}
+                      {formatCurrency(simulationData[simulationData.length - 1].contributions)}
                     </p>
                     <button
                       onClick={() => toggleExplanation('totalInvested')}
@@ -492,7 +455,7 @@ export default function Simulator() {
                       <h3 className="text-lg font-semibold">Total Returns</h3>
                     </div>
                     <p className="text-2xl font-bold text-accent-600 mb-2">
-                      {formatCurrency(simulationData[simulationData.length - 1].returns.toString())}
+                      {formatCurrency(simulationData[simulationData.length - 1].returns)}
                     </p>
                     <button
                       onClick={() => toggleExplanation('totalReturns')}
@@ -570,13 +533,13 @@ export default function Simulator() {
                               Month {row.month}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {formatCurrency(row.contribution.toString())}
+                              {formatCurrency(row.contribution)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-primary-600">
-                              {formatCurrency(row.balance.toString())}
+                              {formatCurrency(row.balance)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-success-600">
-                              {formatCurrency(row.monthlyIncome.toString())}
+                              {formatCurrency(row.monthlyIncome)}
                             </td>
                           </tr>
                         ))}
@@ -630,7 +593,6 @@ export default function Simulator() {
                           formatter={(value) => [formatCurrency(value.toString()), undefined]}
                           labelFormatter={(label) => `Year ${label}`}
                         />
-                        <Legend />
                         <Line 
                           type="monotone" 
                           dataKey="balance" 
@@ -712,7 +674,7 @@ export default function Simulator() {
             <div className="bg-white rounded-xl p-6 max-w-md w-full animate-slide-up">
               <h2 className="text-xl font-bold mb-4">Save as Investment Goal</h2>
               <p className="text-gray-600 mb-6">
-                This will create a new goal to track your progress towards your investment target of {formatCurrency(simulationData[simulationData.length - 1].balance.toString())}.
+                This will create a new goal to track your progress towards your investment target of {formatCurrency(simulationData[simulationData.length - 1].balance)}.
               </p>
               
               <div className="space-y-4">
