@@ -81,12 +81,15 @@ export default function WeeklyBudget() {
     return acc;
   }, {});
 
-  const handleAddEntry = async () => {
+  const handleAddEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user || !newEntry.description || !newEntry.amount) return;
     
     setIsSubmitting(true);
     
     try {
+      const amount = parseFloat(newEntry.amount.replace(/[^0-9.-]+/g, ''));
+      
       const { error } = await supabase
         .from('weekly_budget_entries')
         .insert([{
@@ -96,21 +99,20 @@ export default function WeeklyBudget() {
           year: parseInt(selectedYear),
           category: newEntry.category,
           description: newEntry.description,
-          amount: parseFloat(newEntry.amount),
+          amount: amount,
         }]);
 
       if (error) throw error;
 
-      // Refresh entries
-      const { data: newEntries } = await supabase
-        .from('weekly_budget_entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear));
+      // Update local state with new entry
+      setEntries(prev => [...prev, {
+        id: Date.now().toString(), // Temporary ID until refresh
+        ...newEntry,
+        amount: amount,
+        year: parseInt(selectedYear),
+      }]);
 
-      setEntries(newEntries || []);
-      setShowAddModal(false);
+      // Reset form and close modal
       setNewEntry({
         month: selectedMonth,
         week: 1,
@@ -118,6 +120,7 @@ export default function WeeklyBudget() {
         description: '',
         amount: '',
       });
+      setShowAddModal(false);
     } catch (error) {
       console.error('Error adding entry:', error);
     } finally {
@@ -262,7 +265,7 @@ export default function WeeklyBudget() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <form onSubmit={handleAddEntry} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
                 <select
@@ -310,6 +313,7 @@ export default function WeeklyBudget() {
                   placeholder="Enter description"
                   value={newEntry.description}
                   onChange={(e) => setNewEntry({ ...newEntry, description: e.target.value })}
+                  required
                 />
               </div>
 
@@ -323,26 +327,28 @@ export default function WeeklyBudget() {
                     placeholder="0.00"
                     value={newEntry.amount}
                     onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
+                    required
                   />
                 </div>
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button
-                  onClick={handleAddEntry}
+                  type="submit"
                   disabled={isSubmitting}
                   className="btn btn-primary flex-1"
                 >
                   {isSubmitting ? 'Adding...' : 'Add Entry'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowAddModal(false)}
                   className="btn btn-outline flex-1"
                 >
                   Cancel
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
