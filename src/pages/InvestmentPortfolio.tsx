@@ -13,7 +13,7 @@ import {
   Area
 } from 'recharts';
 import { Calculator, Info, TrendingUp, Target, ChevronRight, HeartHandshake, Share2, Download, ChevronLeft } from 'lucide-react';
-import PageHeader from '../components/layout/PageHeader';
+import { PageHeader } from '../components/layout/PageHeader';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import { formatCurrency } from '../utils/formatters';
 import classNames from 'classnames';
