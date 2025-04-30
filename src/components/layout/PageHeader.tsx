@@ -8,7 +8,7 @@ interface PageHeaderProps {
   onMoreClick?: () => void;
 }
 
-export default function PageHeader({ 
+export function PageHeader({ 
   title, 
   showBackButton = true,
   showMoreOptions = false,
@@ -53,3 +53,5 @@ export default function PageHeader({
     </div>
   );
 }
+
+export default PageHeader
