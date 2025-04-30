@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import { useSupabase } from '../../lib/supabase/SupabaseProvider';
 import { useAuthStore } from '../../stores/authStore';
+import { useWeeklyBudgetStore } from '../../stores/weeklyBudgetStore';
 import { PlusCircle, X } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -10,31 +11,16 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const years = ['2022', '2023', '2024', '2025'];
 const categories = ['Income', 'Investment', 'Fixed', 'Variable', 'Extra', 'Additional'];
 
-interface WeeklyEntry {
-  id: string;
-  month: string;
-  week: number;
-  year: number;
-  category: string;
-  description: string;
-  amount: number;
-}
-
-interface BudgetData {
-  [week: string]: {
-    [category: string]: number;
-  };
-}
-
 export default function WeeklyBudget() {
   const { supabase } = useSupabase();
   const { user } = useAuthStore();
+  const { entries, fetchEntries, addEntry } = useWeeklyBudgetStore();
+  
   const [selectedPeriod, setPeriod] = useState('Month');
   const [selectedMonth, setSelectedMonth] = useState('April');
   const [selectedYear, setSelectedYear] = useState('2025');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [entries, setEntries] = useState<WeeklyEntry[]>([]);
   
   // Form state
   const [newEntry, setNewEntry] = useState({
@@ -45,31 +31,14 @@ export default function WeeklyBudget() {
     amount: '',
   });
 
-  // Fetch entries when month/year changes
+  // Fetch entries when month/year changes or user changes
   useEffect(() => {
     if (!user) return;
-
-    const fetchEntries = async () => {
-      const { data, error } = await supabase
-        .from('weekly_budget_entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear));
-
-      if (error) {
-        console.error('Error fetching entries:', error);
-        return;
-      }
-
-      setEntries(data || []);
-    };
-
-    fetchEntries();
-  }, [selectedMonth, selectedYear, user, supabase]);
+    fetchEntries(supabase, user.id, selectedMonth, selectedYear);
+  }, [selectedMonth, selectedYear, user, supabase, fetchEntries]);
 
   // Process entries into budget data
-  const budgetData = entries.reduce((acc: BudgetData, entry) => {
+  const budgetData = entries.reduce((acc, entry) => {
     const weekKey = `Week ${entry.week}`;
     if (!acc[weekKey]) {
       acc[weekKey] = {};
@@ -79,7 +48,7 @@ export default function WeeklyBudget() {
     }
     acc[weekKey][entry.category] += entry.amount;
     return acc;
-  }, {});
+  }, {} as Record<string, Record<string, number>>);
 
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,27 +59,15 @@ export default function WeeklyBudget() {
     try {
       const amount = parseFloat(newEntry.amount.replace(/[^0-9.-]+/g, ''));
       
-      const { error } = await supabase
-        .from('weekly_budget_entries')
-        .insert([{
-          user_id: user.id,
-          month: newEntry.month,
-          week: newEntry.week,
-          year: parseInt(selectedYear),
-          category: newEntry.category,
-          description: newEntry.description,
-          amount: amount,
-        }]);
-
-      if (error) throw error;
-
-      // Update local state with new entry
-      setEntries(prev => [...prev, {
-        id: Date.now().toString(), // Temporary ID until refresh
-        ...newEntry,
-        amount: amount,
+      await addEntry(supabase, {
+        user_id: user.id,
+        month: newEntry.month,
+        week: newEntry.week,
         year: parseInt(selectedYear),
-      }]);
+        category: newEntry.category,
+        description: newEntry.description,
+        amount: amount,
+      });
 
       // Reset form and close modal
       setNewEntry({
@@ -128,7 +85,7 @@ export default function WeeklyBudget() {
     }
   };
 
-  const getBalance = (weekData: { [category: string]: number } = {}) => {
+  const getBalance = (weekData: Record<string, number> = {}) => {
     const income = weekData['Income'] || 0;
     const expenses = Object.entries(weekData)
       .filter(([category]) => category !== 'Income')
