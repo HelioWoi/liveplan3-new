@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { InvestmentsPage } from './pages/InvestmentsPage';
-import InvestmentPortfolio from './pages/InvestmentPortfolio';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
@@ -22,7 +21,8 @@ import CategoryReport from './pages/CategoryReport';
 import ExpensesPage from './pages/ExpensesPage';
 import IncomePage from './pages/IncomePage';
 import VariablesPage from './pages/VariablesPage';
-import Simulator from './pages/PassiveIncome';
+import InvestmentPortfolio from './pages/InvestmentPortfolio';
+import { PassiveIncome } from './pages/PassiveIncome';
 
 function App() {
   const location = useLocation();
@@ -66,7 +66,7 @@ function App() {
       <Route path="/variables" element={<VariablesPage />} />
       <Route path="/investments" element={<InvestmentsPage />} />
       <Route path="/investment-portfolio" element={<InvestmentPortfolio />} />
-      <Route path="/simulator" element={<Simulator />} />
+      <Route path="/simulator" element={<PassiveIncome />} />
 
       {/* 404 Route */}
       <Route path="*" element={<NotFound />} />
