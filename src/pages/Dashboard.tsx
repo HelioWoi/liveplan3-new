@@ -108,6 +108,12 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 4);
 
+  // Get recent variable expenses
+  const recentVariables = transactions
+    .filter(t => t.category === 'Variable')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 4);
+
   const exportToCSV = () => {
     const headers = ['Date', 'Description', 'Amount', 'Type', 'Category'];
     const csvContent = [
@@ -289,6 +295,49 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Recent Variables */}
+        <div className="bg-white rounded-xl shadow-card overflow-hidden mb-8">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <h2 className="text-xl font-bold">Recent Variables</h2>
+            <Link to="/variables" className="text-primary-600 hover:text-primary-700 font-medium flex items-center">
+              View All <ChevronRight className="h-4 w-4 ml-1" />
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {recentVariables.length > 0 ? (
+              recentVariables.map(variable => (
+                <div key={variable.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                      <ArrowDownCircle className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{variable.origin}</p>
+                      <p className="text-sm text-gray-500">{format(new Date(variable.date), 'MMM d, yyyy')}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-purple-600">
+                      -${variable.amount.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-500">Variable</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                <p>No variable expenses recorded</p>
+                <Link 
+                  to="/variables" 
+                  className="mt-2 inline-block text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Add your first variable expense →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
