@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Modern Header */}
-      <div className="bg-[#1F2533] text-white">
+      <div className="bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] text-white">
         <div className="px-4 pt-6 pb-8">
           {/* Top Bar */}
           <div className="flex justify-between items-center mb-6">
@@ -35,10 +35,15 @@ export default function Home() {
               <p className="text-gray-400 text-sm">Welcome Back</p>
               <h1 className="text-2xl font-bold">{user?.user_metadata?.full_name || 'User'}</h1>
             </div>
-            <button className="p-2 hover:bg-white/10 rounded-full transition-colors relative">
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                LivePlan³
+              </h2>
+              <button className="p-2 hover:bg-white/10 rounded-full transition-colors relative">
+                <Bell className="h-6 w-6" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            </div>
           </div>
 
           {/* Balance Card */}
