@@ -1,16 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
-import { ArrowLeft, Bell, Calendar, ChevronRight, ArrowUpCircle, ArrowDownCircle, PlusCircle, Download, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Bell, Calendar, ChevronRight, ArrowUpCircle, ArrowDownCircle, PlusCircle, Download, TrendingUp, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import BottomNavigation from '../components/layout/BottomNavigation';
 import { formatCurrency } from '../utils/formatters';
 import classNames from 'classnames';
 
+// Replace direct Finnhub client with a fetch-based approach
+const API_KEY = 'd08rfs1r01qju5m8a010d08rfs1r01qju5m8a01g';
+const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
+
+async function fetchQuote(symbol: string) {
+  const response = await fetch(
+    `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${API_KEY}`
+  );
+  return response.json();
+}
+
+async function fetchMarketNews() {
+  const response = await fetch(
+    `${FINNHUB_BASE_URL}/news?category=general&token=${API_KEY}`
+  );
+  return response.json();
+}
+
 type Period = 'day' | 'week' | 'month' | 'year';
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const years = ['2022', '2023', '2024', '2025'];
+
+// Popular brokers list
+const BROKERS = [
+  { name: 'Stake', url: 'https://stake.com.au', description: 'Trade US stocks and ETFs' },
+  { name: 'SelfWealth', url: 'https://www.selfwealth.com.au', description: 'Australian share trading platform' },
+  { name: 'CommSec', url: 'https://www.commsec.com.au', description: 'Commonwealth Bank trading platform' },
+  { name: 'eToro', url: 'https://www.etoro.com/en-au', description: 'Social trading and investment platform' },
+];
+
+// Watchlist stocks
+const WATCHLIST_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'];
+
+interface StockQuote {
+  symbol: string;
+  price: number;
+  change: number;
+  percentChange: number;
+}
 
 export function InvestmentsPage() {
   const navigate = useNavigate();
@@ -19,6 +55,9 @@ export function InvestmentsPage() {
   const [selectedMonth, setSelectedMonth] = useState('April');
   const [selectedYear, setSelectedYear] = useState('2025');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBrokersModal, setShowBrokersModal] = useState(false);
+  const [quotes, setQuotes] = useState<StockQuote[]>([]);
+  const [marketNews, setMarketNews] = useState<any[]>([]);
 
   // Filter investment transactions
   const investments = transactions.filter(t => t.category === 'Investimento');
@@ -26,39 +65,52 @@ export function InvestmentsPage() {
   // Calculate total invested
   const totalInvested = investments.reduce((sum, t) => sum + t.amount, 0);
 
-  // Sample data for the trend chart
-  const trendData = investments.map(t => ({
-    date: format(new Date(t.date), 'MMM d'),
-    amount: t.amount
-  })).slice(-6);
+  useEffect(() => {
+    // Fetch stock quotes
+    const fetchQuotes = async () => {
+      try {
+        const quotesData = await Promise.all(
+          WATCHLIST_SYMBOLS.map(async (symbol) => {
+            const quote = await fetchQuote(symbol);
+            return {
+              symbol,
+              price: quote.c,
+              change: quote.d,
+              percentChange: quote.dp
+            };
+          })
+        );
+        setQuotes(quotesData);
+      } catch (error) {
+        console.error('Error fetching quotes:', error);
+      }
+    };
 
-  // Calculate monthly returns (sample data)
-  const monthlyReturns = [
-    { month: 'Jan', return: 5.2 },
-    { month: 'Feb', return: 4.8 },
-    { month: 'Mar', return: -2.1 },
-    { month: 'Apr', return: 6.3 },
-    { month: 'May', return: 3.9 },
-    { month: 'Jun', return: 4.5 },
-  ];
+    // Fetch market news
+    const fetchNews = async () => {
+      try {
+        const news = await fetchMarketNews();
+        setMarketNews(news.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching news:', error);
+      }
+    };
 
-  // Portfolio distribution (sample data)
-  const portfolioData = [
-    { name: 'Stocks', value: 45 },
-    { name: 'Bonds', value: 25 },
-    { name: 'Real Estate', value: 15 },
-    { name: 'Crypto', value: 10 },
-    { name: 'Cash', value: 5 },
-  ];
+    fetchQuotes();
+    fetchNews();
 
-  const COLORS = ['#4F46E5', '#10B981', '#7C3AED', '#F59E0B', '#EC4899'];
+    // Refresh quotes every minute
+    const interval = setInterval(fetchQuotes, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] text-white">
+      <div className="bg-[#120B39] text-white">
         <div className="relative">
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] rounded-b-[40px]"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#120B39] rounded-b-[40px]"></div>
           <div className="relative px-4 pt-12 pb-6">
             <div className="flex items-center justify-between mb-4">
               <button
@@ -78,6 +130,73 @@ export function InvestmentsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 space-y-6 mt-6">
+        {/* Watchlist */}
+        <div className="bg-white rounded-xl p-6 shadow-card">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">Market Watch</h2>
+            <button
+              onClick={() => setShowBrokersModal(true)}
+              className="btn btn-primary"
+            >
+              <ExternalLink className="h-5 w-5 mr-2" />
+              Open Trading Account
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {quotes.map((quote) => (
+              <div key={quote.symbol} className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-bold">{quote.symbol}</h3>
+                  <span className={classNames(
+                    "text-sm font-medium px-2 py-1 rounded-full",
+                    quote.change >= 0 ? "bg-success-100 text-success-800" : "bg-error-100 text-error-800"
+                  )}>
+                    {quote.change >= 0 ? '+' : ''}{quote.percentChange.toFixed(2)}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold">${quote.price.toFixed(2)}</p>
+                <p className="text-sm text-gray-500">
+                  {quote.change >= 0 ? '+' : ''}{quote.change.toFixed(2)} today
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Market News */}
+        <div className="bg-white rounded-xl p-6 shadow-card">
+          <h2 className="text-xl font-bold mb-6">Market News</h2>
+          <div className="space-y-4">
+            {marketNews.map((news, index) => (
+              <a
+                key={index}
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block hover:bg-gray-50 rounded-lg p-4 transition-colors"
+              >
+                <div className="flex items-start gap-4">
+                  {news.image && (
+                    <img
+                      src={news.image}
+                      alt={news.headline}
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                  )}
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-1">{news.headline}</h3>
+                    <p className="text-sm text-gray-500">{news.summary}</p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {format(new Date(news.datetime * 1000), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
         {/* Period Selection */}
         <div className="flex flex-col gap-4">
           <div className="flex gap-3 items-center flex-wrap">
@@ -135,9 +254,9 @@ export function InvestmentsPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                <ArrowUpCircle className="h-5 w-5 text-primary-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
+                <ArrowUpCircle className="h-6 w-6 text-primary-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Invested</p>
@@ -147,9 +266,9 @@ export function InvestmentsPage() {
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-success-100 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-success-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-success-100 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-success-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Returns</p>
@@ -159,9 +278,9 @@ export function InvestmentsPage() {
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-accent-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-accent-100 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-accent-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Monthly Income</p>
@@ -171,68 +290,19 @@ export function InvestmentsPage() {
           </div>
         </div>
 
-        {/* Portfolio Distribution */}
-        <div className="bg-white rounded-xl p-6 shadow-card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Portfolio Distribution</h2>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn btn-primary"
-            >
-              <PlusCircle className="h-5 w-5 mr-2" />
-              Add Investment
-            </button>
-          </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={portfolioData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {portfolioData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Monthly Returns Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-card">
-          <h2 className="text-xl font-bold mb-6">Monthly Returns</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyReturns}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={(value) => `${value}%`} />
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Line 
-                  type="monotone" 
-                  dataKey="return" 
-                  stroke="#4F46E5" 
-                  strokeWidth={2}
-                  dot={{ fill: '#4F46E5' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Recent Investments */}
         <div className="bg-white rounded-xl shadow-card overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-bold">Recent Investments</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Recent Investments</h2>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn btn-primary"
+              >
+                <PlusCircle className="h-5 w-5 mr-2" />
+                Add Investment
+              </button>
+            </div>
           </div>
 
           <div className="divide-y divide-gray-100">
@@ -271,6 +341,46 @@ export function InvestmentsPage() {
             )}
           </div>
         </div>
+
+        {/* Brokers Modal */}
+        {showBrokersModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 max-w-2xl w-full animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Choose Your Trading Platform</h2>
+                <button
+                  onClick={() => setShowBrokersModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {BROKERS.map((broker) => (
+                  <a
+                    key={broker.name}
+                    href={broker.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <h3 className="text-lg font-bold mb-2">{broker.name}</h3>
+                    <p className="text-gray-600 mb-4">{broker.description}</p>
+                    <div className="flex items-center text-primary-600">
+                      <span className="font-medium">Open Account</span>
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+
+              <p className="text-sm text-gray-500 mt-6">
+                Note: LivePlan³ is not affiliated with any of these platforms. Please research and compare before choosing a broker.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <BottomNavigation />
