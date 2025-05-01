@@ -11,6 +11,7 @@ export default function IncomePage() {
   const navigate = useNavigate();
   const { addTransaction } = useTransactionStore();
   const [amount, setAmount] = useState<string>('150.00');
+  const [manualAmount, setManualAmount] = useState<string>('');
   const [origin, setOrigin] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -19,11 +20,26 @@ export default function IncomePage() {
     const currentAmount = parseFloat(amount);
     const newAmount = Math.max(0, Math.min(currentAmount + value, 100000.00));
     setAmount(newAmount.toFixed(2));
+    setManualAmount(newAmount.toFixed(2));
   };
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     setAmount(value.toFixed(2));
+    setManualAmount(value.toFixed(2));
+  };
+
+  const handleManualAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9.]/g, '');
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setManualAmount(value);
+      if (value) {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          setAmount(Math.min(numValue, 100000).toFixed(2));
+        }
+      }
+    }
   };
 
   const handleProceed = async () => {
@@ -93,6 +109,23 @@ export default function IncomePage() {
             )}
           </div>
 
+          {/* Manual Amount Input */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Enter Amount Manually
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+              <input
+                type="text"
+                className="w-full px-4 py-3 pl-8 bg-gray-50 rounded-xl text-lg border border-gray-200 focus:border-[#120B39] focus:ring-[#120B39] transition-colors"
+                placeholder="0.00"
+                value={manualAmount}
+                onChange={handleManualAmountChange}
+              />
+            </div>
+          </div>
+
           {/* Amount Picker */}
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-8 mb-8">
@@ -131,7 +164,10 @@ export default function IncomePage() {
               {AMOUNT_PRESETS.map((preset) => (
                 <button
                   key={preset}
-                  onClick={() => setAmount(preset.toFixed(2))}
+                  onClick={() => {
+                    setAmount(preset.toFixed(2));
+                    setManualAmount(preset.toFixed(2));
+                  }}
                   className={classNames(
                     'py-4 rounded-xl font-medium text-lg transition-colors',
                     parseFloat(amount) === preset
