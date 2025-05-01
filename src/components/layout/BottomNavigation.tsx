@@ -1,5 +1,5 @@
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Home, BarChart2, TrendingUp, User } from 'lucide-react';
+import { Home, BarChart2, TrendingUp, User, Calculator } from 'lucide-react';
 
 interface BottomNavigationProps {
   onAddClick?: () => void;
@@ -58,11 +58,11 @@ export default function BottomNavigation({ onAddClick }: BottomNavigationProps) 
           {/* Right side links */}
           <div className="flex-1 flex justify-end space-x-8">
             <Link 
-              to="/investments" 
-              className={`flex flex-col items-center ${isActive('/investments') ? 'text-primary-600' : 'text-gray-400 hover:text-primary-600'}`}
+              to="/simulator" 
+              className={`flex flex-col items-center ${isActive('/simulator') ? 'text-primary-600' : 'text-gray-400 hover:text-primary-600'}`}
             >
-              <TrendingUp className="h-6 w-6" />
-              <span className="text-xs mt-1">Investments</span>
+              <Calculator className="h-6 w-6" />
+              <span className="text-xs mt-1">Simulator</span>
             </Link>
             <Link 
               to="/profile" 
