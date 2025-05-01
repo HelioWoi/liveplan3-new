@@ -28,6 +28,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'supabase-js-web'
+      }
     }
   }));
   const [isInitialized, setIsInitialized] = useState(false);
@@ -42,7 +47,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user || null);
       
       if (event === 'SIGNED_OUT') {
-        // Clear any cached data or perform cleanup if needed
         console.log('User signed out, clearing session');
       }
     });
@@ -58,31 +62,35 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }, [supabase.auth, setUser]);
 
   useEffect(() => {
+    let isMounted = true;
+    const retryDelay = 2000; // 2 seconds between retries
+    const maxRetries = 3;
+
     const checkConnection = async () => {
+      if (!isMounted) return;
+
       try {
-        // Clear any previous connection errors
         setConnectionError(null);
 
-        // Basic connectivity check
-        const { error: pingError } = await supabase.from('transactions').select('count').single();
-        
-        if (pingError) {
-          if (pingError.code === 'PGRST204') {
-            // This is actually not an error - just means no rows were found
+        // Simple health check query
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('count')
+          .limit(1)
+          .single();
+
+        if (error) {
+          if (error.code === 'PGRST204') {
+            // No data found is not an error
             console.log('Supabase connection successful (no data found)');
             setIsInitialized(true);
             setRetryCount(0);
             return;
           }
 
-          if (pingError.code === '401') {
-            throw new Error('Authentication failed. Please check your Supabase credentials.');
-          }
-
-          throw new Error(`Database error: ${pingError.message}`);
+          throw error;
         }
 
-        // If we get here, connection was successful
         console.log('Supabase connection successful');
         setIsInitialized(true);
         setRetryCount(0);
@@ -92,25 +100,32 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         console.error('Supabase connection error:', error);
 
         // Set a user-friendly error message
-        setConnectionError(
-          error.message.includes('fetch') 
-            ? 'Unable to connect to Supabase. Please check your internet connection.'
-            : error.message
-        );
+        const errorMessage = error.message.includes('fetch')
+          ? 'Unable to connect to Supabase. Please check your internet connection.'
+          : `Database error: ${error.message}`;
 
-        // Implement retry logic
-        if (retryCount < 3) {
-          console.log(`Retrying connection (attempt ${retryCount + 1} of 3)...`);
-          setRetryCount(prev => prev + 1);
-          setTimeout(checkConnection, 2000);
-        } else {
-          console.error('Max retry attempts reached');
-          setIsInitialized(true); // Set to true so the app doesn't hang
+        if (isMounted) {
+          setConnectionError(errorMessage);
+
+          if (retryCount < maxRetries) {
+            console.log(`Retrying connection (attempt ${retryCount + 1} of ${maxRetries})...`);
+            setRetryCount(prev => prev + 1);
+            setTimeout(checkConnection, retryDelay * (retryCount + 1)); // Exponential backoff
+          } else {
+            console.error('Max retry attempts reached');
+            setIsInitialized(true); // Set to true so the app doesn't hang
+          }
         }
       }
     };
 
+    // Initial connection check
     checkConnection();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [supabase, retryCount]);
 
   const value = {
